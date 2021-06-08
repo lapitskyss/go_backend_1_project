@@ -6,9 +6,9 @@
 package di
 
 import (
+	"context"
 	"github.com/google/wire"
-	"github.com/lapitskyss/go_backend_1_project/internal/repository"
-	"github.com/lapitskyss/go_backend_1_project/internal/repository/file"
+	"github.com/lapitskyss/go_backend_1_project/internal/repository/postgres"
 	"github.com/lapitskyss/go_backend_1_project/internal/server"
 	"go.uber.org/zap"
 )
@@ -16,29 +16,38 @@ import (
 // Injectors from wire.go:
 
 func InitializeAPIService() (*ApiService, func(), error) {
-	sugaredLogger, cleanup, err := InitLogger()
+	context, cleanup, err := InitContext()
 	if err != nil {
 		return nil, nil, err
 	}
-	repository, cleanup2, err := InitFileStore()
+	sugaredLogger, cleanup2, err := InitLogger()
 	if err != nil {
 		cleanup()
 		return nil, nil, err
 	}
-	api, cleanup3, err := InitServer(sugaredLogger, repository)
+	store, cleanup3, err := InitPostgresqlStore(context)
 	if err != nil {
 		cleanup2()
 		cleanup()
 		return nil, nil, err
 	}
-	apiService, err := InitApiService(sugaredLogger, api)
+	api, cleanup4, err := InitServer(sugaredLogger, store)
 	if err != nil {
 		cleanup3()
 		cleanup2()
 		cleanup()
 		return nil, nil, err
 	}
+	apiService, err := InitApiService(context, sugaredLogger, api)
+	if err != nil {
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return nil, nil, err
+	}
 	return apiService, func() {
+		cleanup4()
 		cleanup3()
 		cleanup2()
 		cleanup()
@@ -53,15 +62,26 @@ type ApiService struct {
 
 var APISet = wire.NewSet(
 	InitApiService,
+	InitContext,
 	InitLogger,
 	InitServer,
-	InitFileStore,
+	InitPostgresqlStore,
 )
 
-func InitApiService(log *zap.SugaredLogger, api *server.Api) (*ApiService, error) {
+func InitApiService(ctx context.Context, log *zap.SugaredLogger, api *server.Api) (*ApiService, error) {
 	return &ApiService{
 		Log: log,
 	}, nil
+}
+
+func InitContext() (context.Context, func(), error) {
+	ctx := context.Background()
+
+	cb := func() {
+		ctx.Done()
+	}
+
+	return ctx, cb, nil
 }
 
 func InitLogger() (*zap.SugaredLogger, func(), error) {
@@ -76,7 +96,7 @@ func InitLogger() (*zap.SugaredLogger, func(), error) {
 	return sugar, cleanup, nil
 }
 
-func InitServer(log *zap.SugaredLogger, rep repository.Repository) (*server.Api, func(), error) {
+func InitServer(log *zap.SugaredLogger, rep *postgres.Store) (*server.Api, func(), error) {
 	server2 := server.New(log, rep)
 
 	cleanup := func() {
@@ -89,12 +109,17 @@ func InitServer(log *zap.SugaredLogger, rep repository.Repository) (*server.Api,
 	return server2, cleanup, nil
 }
 
-func InitFileStore() (repository.Repository, func(), error) {
-	fileStore := file.New()
+func InitPostgresqlStore(ctx context.Context) (*postgres.Store, func(), error) {
+	store := &postgres.Store{}
+	err := store.Init(ctx)
 
-	cleanup := func() {
-
+	if err != nil {
+		return nil, nil, err
 	}
 
-	return fileStore, cleanup, nil
+	cleanup := func() {
+		store.Close()
+	}
+
+	return store, cleanup, nil
 }

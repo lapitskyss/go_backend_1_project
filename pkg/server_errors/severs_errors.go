@@ -1,9 +1,17 @@
-package serverErrors
+package server_errors
 
 import (
 	"github.com/go-chi/render"
 	"net/http"
 )
+
+func NotFoundHandler(w http.ResponseWriter, r *http.Request) {
+	render.Status(r, http.StatusNotFound)
+	render.JSON(w, r, struct {
+		Status bool   `json:"status"`
+		Error  string `json:"error"`
+	}{false, "Not found"})
+}
 
 func RenderBadRequestError(w http.ResponseWriter, r *http.Request, err error) {
 	render.Status(r, http.StatusBadRequest)

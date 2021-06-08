@@ -5,11 +5,12 @@
 package di
 
 import (
+	"context"
+
 	"github.com/google/wire"
 	"go.uber.org/zap"
 
-	"github.com/lapitskyss/go_backend_1_project/internal/repository"
-	fileStore "github.com/lapitskyss/go_backend_1_project/internal/repository/file"
+	"github.com/lapitskyss/go_backend_1_project/internal/repository/postgres"
 	"github.com/lapitskyss/go_backend_1_project/internal/server"
 )
 
@@ -19,12 +20,14 @@ type ApiService struct {
 
 var APISet = wire.NewSet(
 	InitApiService,
+	InitContext,
 	InitLogger,
 	InitServer,
-	InitFileStore,
+	InitPostgresqlStore,
+	//InitFileStore,
 )
 
-func InitApiService(log *zap.SugaredLogger, api *server.Api) (*ApiService, error) {
+func InitApiService(ctx context.Context, log *zap.SugaredLogger, api *server.Api) (*ApiService, error) {
 	return &ApiService{
 		Log: log,
 	}, nil
@@ -32,6 +35,16 @@ func InitApiService(log *zap.SugaredLogger, api *server.Api) (*ApiService, error
 
 func InitializeAPIService() (*ApiService, func(), error) {
 	panic(wire.Build(APISet))
+}
+
+func InitContext() (context.Context, func(), error) {
+	ctx := context.Background()
+
+	cb := func() {
+		ctx.Done()
+	}
+
+	return ctx, cb, nil
 }
 
 func InitLogger() (*zap.SugaredLogger, func(), error) {
@@ -46,7 +59,7 @@ func InitLogger() (*zap.SugaredLogger, func(), error) {
 	return sugar, cleanup, nil
 }
 
-func InitServer(log *zap.SugaredLogger, rep repository.Repository) (*server.Api, func(), error) {
+func InitServer(log *zap.SugaredLogger, rep *postgres.Store) (*server.Api, func(), error) {
 	server := server.New(log, rep)
 
 	cleanup := func() {
@@ -58,12 +71,27 @@ func InitServer(log *zap.SugaredLogger, rep repository.Repository) (*server.Api,
 	return server, cleanup, nil
 }
 
-func InitFileStore() (repository.Repository, func(), error) {
-	fileStore := fileStore.New()
+func InitPostgresqlStore(ctx context.Context) (*postgres.Store, func(), error) {
+	store := &postgres.Store{}
+	err := store.Init(ctx)
 
-	cleanup := func() {
-
+	if err != nil {
+		return nil, nil, err
 	}
 
-	return fileStore, cleanup, nil
+	cleanup := func() {
+		store.Close()
+	}
+
+	return store, cleanup, nil
 }
+
+//func InitFileStore() (repository.Repository, func(), error) {
+//	fileStore := fileStore.New()
+//
+//	cleanup := func() {
+//
+//	}
+//
+//	return fileStore, cleanup, nil
+//}

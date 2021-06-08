@@ -11,15 +11,17 @@ import (
 	"github.com/go-chi/render"
 	"go.uber.org/zap"
 
-	"github.com/lapitskyss/go_backend_1_project/internal/repository"
+	"github.com/lapitskyss/go_backend_1_project/internal/repository/postgres"
 	"github.com/lapitskyss/go_backend_1_project/internal/server/controller"
+	"github.com/lapitskyss/go_backend_1_project/pkg/server_errors"
 )
 
 type Api struct {
 	server http.Server
+	log    *zap.SugaredLogger
 }
 
-func New(log *zap.SugaredLogger, rep repository.Repository) *Api {
+func New(log *zap.SugaredLogger, rep *postgres.Store) *Api {
 	r := chi.NewRouter()
 
 	corsHandler := cors.New(cors.Options{
@@ -34,12 +36,14 @@ func New(log *zap.SugaredLogger, rep repository.Repository) *Api {
 	r.Use(corsHandler.Handler)
 	r.Use(render.SetContentType(render.ContentTypeJSON))
 	r.Use(middleware.Timeout(60 * time.Second))
-	r.NotFound(NotFoundHandler)
+	r.NotFound(server_errors.NotFoundHandler)
 
 	linkController := controller.NewLinkController(log, rep)
 
-	r.Post("/api/link", linkController.Add)
-	r.Get("/api/links", linkController.List)
+	r.Route("/api/v1", func(r chi.Router) {
+		r.Post("/links", linkController.Add)
+		r.Get("/links", linkController.List)
+	})
 
 	return &Api{
 		server: http.Server{
@@ -51,12 +55,17 @@ func New(log *zap.SugaredLogger, rep repository.Repository) *Api {
 			IdleTimeout:       30 * time.Second,
 			ReadHeaderTimeout: 2 * time.Second,
 		},
+		log: log,
 	}
 }
 
 func (api *Api) Start() {
+	api.log.Info("Server started.")
 	go func() {
-		_ = api.server.ListenAndServe()
+		err := api.server.ListenAndServe()
+		if err != nil && err != http.ErrServerClosed {
+			api.log.Error("Server return error", zap.NamedError("sever_error", err))
+		}
 	}()
 }
 
@@ -64,12 +73,4 @@ func (api *Api) Stop() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	return api.server.Shutdown(ctx)
-}
-
-func NotFoundHandler(w http.ResponseWriter, r *http.Request) {
-	render.Status(r, http.StatusNotFound)
-	render.JSON(w, r, struct {
-		Status bool   `json:"status"`
-		Error  string `json:"error"`
-	}{false, "Not found"})
 }
