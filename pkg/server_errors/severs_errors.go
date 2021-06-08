@@ -1,8 +1,9 @@
 package server_errors
 
 import (
-	"github.com/go-chi/render"
 	"net/http"
+
+	"github.com/go-chi/render"
 )
 
 func NotFoundHandler(w http.ResponseWriter, r *http.Request) {

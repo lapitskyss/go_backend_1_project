@@ -1,10 +1,10 @@
 package controller
 
 import (
-	"github.com/go-chi/render"
-
-	"go.uber.org/zap"
 	"net/http"
+
+	"github.com/go-chi/render"
+	"go.uber.org/zap"
 
 	"github.com/lapitskyss/go_backend_1_project/internal/repository/postgres"
 )
