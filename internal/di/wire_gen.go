@@ -16,11 +16,11 @@ import (
 // Injectors from wire.go:
 
 func InitializeAPIService() (*ApiService, func(), error) {
-	context, cleanup, err := InitContext()
+	sugaredLogger, cleanup, err := InitLogger()
 	if err != nil {
 		return nil, nil, err
 	}
-	sugaredLogger, cleanup2, err := InitLogger()
+	context, cleanup2, err := InitContext()
 	if err != nil {
 		cleanup()
 		return nil, nil, err
@@ -31,14 +31,14 @@ func InitializeAPIService() (*ApiService, func(), error) {
 		cleanup()
 		return nil, nil, err
 	}
-	api, cleanup4, err := InitServer(sugaredLogger, store)
+	api, cleanup4, err := InitServer(context, sugaredLogger, store)
 	if err != nil {
 		cleanup3()
 		cleanup2()
 		cleanup()
 		return nil, nil, err
 	}
-	apiService, err := InitApiService(context, sugaredLogger, api)
+	apiService, err := InitApiService(sugaredLogger, api)
 	if err != nil {
 		cleanup4()
 		cleanup3()
@@ -68,7 +68,7 @@ var APISet = wire.NewSet(
 	InitPostgresqlStore,
 )
 
-func InitApiService(ctx context.Context, log *zap.SugaredLogger, api *server.Api) (*ApiService, error) {
+func InitApiService(log *zap.SugaredLogger, api *server.Api) (*ApiService, error) {
 	return &ApiService{
 		Log: log,
 	}, nil
@@ -96,8 +96,8 @@ func InitLogger() (*zap.SugaredLogger, func(), error) {
 	return sugar, cleanup, nil
 }
 
-func InitServer(log *zap.SugaredLogger, rep *postgres.Store) (*server.Api, func(), error) {
-	server2 := server.New(log, rep)
+func InitServer(ctx context.Context, log *zap.SugaredLogger, rep *postgres.Store) (*server.Api, func(), error) {
+	server2 := server.New(ctx, log, rep)
 
 	cleanup := func() {
 		server2.

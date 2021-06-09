@@ -27,7 +27,7 @@ var APISet = wire.NewSet(
 	//InitFileStore,
 )
 
-func InitApiService(ctx context.Context, log *zap.SugaredLogger, api *server.Api) (*ApiService, error) {
+func InitApiService(log *zap.SugaredLogger, api *server.Api) (*ApiService, error) {
 	return &ApiService{
 		Log: log,
 	}, nil
@@ -59,8 +59,8 @@ func InitLogger() (*zap.SugaredLogger, func(), error) {
 	return sugar, cleanup, nil
 }
 
-func InitServer(log *zap.SugaredLogger, rep *postgres.Store) (*server.Api, func(), error) {
-	server := server.New(log, rep)
+func InitServer(ctx context.Context, log *zap.SugaredLogger, rep *postgres.Store) (*server.Api, func(), error) {
+	server := server.New(ctx, log, rep)
 
 	cleanup := func() {
 		server.Stop()
@@ -85,13 +85,3 @@ func InitPostgresqlStore(ctx context.Context) (*postgres.Store, func(), error) {
 
 	return store, cleanup, nil
 }
-
-//func InitFileStore() (repository.Repository, func(), error) {
-//	fileStore := fileStore.New()
-//
-//	cleanup := func() {
-//
-//	}
-//
-//	return fileStore, cleanup, nil
-//}

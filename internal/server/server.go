@@ -12,7 +12,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/lapitskyss/go_backend_1_project/internal/repository/postgres"
-	"github.com/lapitskyss/go_backend_1_project/internal/server/controller"
+	"github.com/lapitskyss/go_backend_1_project/internal/server/link"
 	"github.com/lapitskyss/go_backend_1_project/pkg/server_errors"
 )
 
@@ -21,7 +21,7 @@ type Api struct {
 	log    *zap.SugaredLogger
 }
 
-func New(log *zap.SugaredLogger, rep *postgres.Store) *Api {
+func New(ctx context.Context, log *zap.SugaredLogger, rep *postgres.Store) *Api {
 	r := chi.NewRouter()
 
 	corsHandler := cors.New(cors.Options{
@@ -36,13 +36,14 @@ func New(log *zap.SugaredLogger, rep *postgres.Store) *Api {
 	r.Use(corsHandler.Handler)
 	r.Use(render.SetContentType(render.ContentTypeJSON))
 	r.Use(middleware.Timeout(60 * time.Second))
-	r.NotFound(server_errors.NotFoundHandler)
+	r.NotFound(server_errors.NotFoundError)
 
-	linkController := controller.NewLinkController(log, rep)
+	linkController := link.New(ctx, log, rep)
 
 	r.Route("/api/v1", func(r chi.Router) {
-		r.Post("/links", linkController.Add)
+		r.Post("/links", linkController.Create)
 		r.Get("/links", linkController.List)
+		r.Get("/link/{hash}", linkController.Get)
 	})
 
 	return &Api{

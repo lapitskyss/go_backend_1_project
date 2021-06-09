@@ -52,6 +52,8 @@ services:
             PGADMIN_CONFIG_SERVER_MODE: 'False'
         volumes:
             - pgadmin:/root/.pgadmin
+        depends_on:
+            - postgres
 
 volumes:
     postgres:

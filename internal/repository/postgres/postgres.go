@@ -10,11 +10,14 @@ import (
 )
 
 type Store struct {
+	ctx    context.Context
 	client *pgxpool.Pool
 }
 
 func (store *Store) Init(ctx context.Context) error {
 	var err error
+
+	store.ctx = ctx
 
 	config := fmt.Sprintf("postgres://%s:%s@postgres:%s/%s?sslmode=disable",
 		os.Getenv("POSTGRES_USER"),
