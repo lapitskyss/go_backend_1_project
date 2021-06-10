@@ -11,5 +11,6 @@ require (
 	github.com/gorilla/schema v1.2.0
 	github.com/jackc/pgx/v4 v4.11.0
 	github.com/lib/pq v1.10.2
+	github.com/speps/go-hashids/v2 v2.0.1
 	go.uber.org/zap v1.17.0
 )

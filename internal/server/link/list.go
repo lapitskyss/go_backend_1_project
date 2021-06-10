@@ -47,7 +47,7 @@ func (api *linkController) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Получаем слайс ссылок по заданным параметрам
-	links, err := api.rep.GetLinksBy(*params.Page, *params.Limit, params.Sort, params.Order, params.Query)
+	links, err := api.rep.FindLinks(*params.Page, *params.Limit, params.Sort, params.Order, params.Query)
 	if err != nil {
 		api.log.Error(zap.Error(err))
 		se.NotFoundError(w, r)

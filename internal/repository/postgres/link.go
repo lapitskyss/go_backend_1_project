@@ -5,6 +5,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v4"
+	"github.com/lapitskyss/go_backend_1_project/pkg/pointer"
 
 	"github.com/lapitskyss/go_backend_1_project/internal/model"
 )
@@ -15,8 +16,8 @@ var (
 
 func (store *Store) AddLink(link *model.Link) (*model.Link, error) {
 	sql, args, err := psql.Insert("links").
-		Columns("url", "hash", "created_at").
-		Values(link.URL, link.Hash, link.CreatedAt).
+		Columns("id", "url", "hash", "created_at").
+		Values(link.ID, link.URL, link.Hash, link.CreatedAt).
 		ToSql()
 
 	if err != nil {
@@ -36,14 +37,26 @@ func (store *Store) AddLink(link *model.Link) (*model.Link, error) {
 	return link, nil
 }
 
-func (store *Store) GetLinkByURL(url string) (*model.Link, error) {
+func (store *Store) GetNextLinkId() (*uint64, error) {
+	var id uint64
+
+	err := store.client.QueryRow(store.ctx, "SELECT NEXTVAL('links_id_seq')").
+		Scan(&id)
+	if err != nil {
+		return nil, err
+	}
+
+	return &id, nil
+}
+
+func (store *Store) GetExistingLink(url string) (*bool, *model.Link, error) {
 	q, args, err := psql.Select("url, hash, created_at").
 		From("links").
 		Where(sq.Eq{"url": url}).
 		ToSql()
 
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	var link model.Link
@@ -51,11 +64,14 @@ func (store *Store) GetLinkByURL(url string) (*model.Link, error) {
 	err = store.client.QueryRow(store.ctx, q, args...).
 		Scan(&link.URL, &link.Hash, &link.CreatedAt)
 
+	if err == pgx.ErrNoRows {
+		return pointer.Bool(false), nil, nil
+	}
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return &link, nil
+	return pointer.Bool(true), &link, nil
 }
 
 func (store *Store) GetLinkByHash(hash string) (*model.Link, error) {
@@ -80,7 +96,7 @@ func (store *Store) GetLinkByHash(hash string) (*model.Link, error) {
 	return &link, nil
 }
 
-func (store *Store) GetLinksBy(page uint64, limit uint64, sort *string, order *string, query *string) (*[]*model.Link, error) {
+func (store *Store) FindLinks(page uint64, limit uint64, sort *string, order *string, query *string) (*[]*model.Link, error) {
 	sb := psql.Select("url, hash, created_at").
 		From("links").
 		Limit(limit)

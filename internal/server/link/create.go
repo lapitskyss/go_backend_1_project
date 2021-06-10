@@ -3,13 +3,12 @@ package link
 import (
 	"encoding/json"
 	"errors"
-	"hash/crc64"
 	"net/http"
 	"net/url"
-	"strconv"
 	"time"
 
 	"github.com/go-chi/render"
+	"github.com/speps/go-hashids/v2"
 	"go.uber.org/zap"
 
 	"github.com/lapitskyss/go_backend_1_project/internal/model"
@@ -38,7 +37,7 @@ func (api *linkController) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Проверяем что короткая ссылка уже есть для URL
-	existingLink, err := api.rep.GetLinkByURL(params.URL)
+	isExist, existingLink, err := api.rep.GetExistingLink(params.URL)
 	if err != nil {
 		api.log.Error(zap.Error(err))
 		se.BadRequestError(w, r, err)
@@ -46,13 +45,21 @@ func (api *linkController) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Если короткая ссылка есть, то отдаем ее
-	if existingLink != nil {
+	if *isExist {
 		render.JSON(w, r, existingLink)
 		return
 	}
 
+	// Получаем id короткой ссылки
+	nextId, err := api.rep.GetNextLinkId()
+	if err != nil {
+		api.log.Error(zap.Error(err))
+		se.BadRequestError(w, r, err)
+		return
+	}
+
 	// Добавляем хэш и дату создания короткой ссылки
-	link := initLink(params)
+	link := initLink(params, nextId)
 
 	// Создаем ссылку
 	link, err = api.rep.AddLink(link)
@@ -79,17 +86,21 @@ func validateParams(params *createLinkParams) error {
 	return nil
 }
 
-func initLink(params *createLinkParams) *model.Link {
+func initLink(params *createLinkParams, id *uint64) *model.Link {
 	return &model.Link{
+		ID:        *id,
 		URL:       params.URL,
-		Hash:      getHash(params.URL),
+		Hash:      getHash(id),
 		CreatedAt: time.Now(),
 	}
 }
 
-// TODO: change function
-func getHash(url string) string {
-	crc64Table := crc64.MakeTable(0xC96C5795D7870F42)
-	crc64Int := crc64.Checksum([]byte(url), crc64Table)
-	return strconv.FormatUint(crc64Int, 16)
+func getHash(id *uint64) string {
+	hd := hashids.NewData()
+	hd.Salt = "salt"
+	hd.MinLength = 5
+	h, _ := hashids.NewWithData(hd)
+	e, _ := h.EncodeInt64([]int64{int64(*id)})
+
+	return e
 }
