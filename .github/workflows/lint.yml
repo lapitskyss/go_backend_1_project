@@ -10,7 +10,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: golangci-lint
+      - name: golangci-lint-frontend
         uses: golangci/golangci-lint-action@v2
         with:
-          version: v1.38
+          version: latest
+          working-directory: frontend/
+          args: --config=.golangci.yml
+      - name: golangci-lint-linkservice
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: latest
+          working-directory: linkservice/
+          args: --config=.golangci.yml

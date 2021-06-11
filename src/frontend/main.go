@@ -29,12 +29,6 @@ func main() {
 	server.ListenAndServe()
 }
 
-type Student struct {
-	Name       string
-	College    string
-	RollNumber int
-}
-
 func home(w http.ResponseWriter, r *http.Request) {
 	wd, err := os.Getwd()
 	if err != nil {
