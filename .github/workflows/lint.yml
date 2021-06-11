@@ -14,11 +14,11 @@ jobs:
         uses: golangci/golangci-lint-action@v2
         with:
           version: latest
-          working-directory: frontend/
+          working-directory: src/frontend
           args: --config=.golangci.yml
       - name: golangci-lint-linkservice
         uses: golangci/golangci-lint-action@v2
         with:
           version: latest
-          working-directory: linkservice/
+          working-directory: src/linkservice/
           args: --config=.golangci.yml
