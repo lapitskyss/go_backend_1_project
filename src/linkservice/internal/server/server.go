@@ -11,9 +11,9 @@ import (
 	"github.com/go-chi/render"
 	"go.uber.org/zap"
 
-	"github.com/lapitskyss/go_backend_1_project/internal/repository/postgres"
-	"github.com/lapitskyss/go_backend_1_project/internal/server/link"
-	"github.com/lapitskyss/go_backend_1_project/pkg/server_errors"
+	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/repository/postgres"
+	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/server/link"
+	"github.com/lapitskyss/go_backend_1_project/src/linkservice/pkg/server_errors"
 )
 
 type Api struct {

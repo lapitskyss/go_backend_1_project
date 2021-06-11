@@ -8,8 +8,8 @@ package di
 import (
 	"context"
 	"github.com/google/wire"
-	"github.com/lapitskyss/go_backend_1_project/internal/repository/postgres"
-	"github.com/lapitskyss/go_backend_1_project/internal/server"
+	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/repository/postgres"
+	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/server"
 	"go.uber.org/zap"
 )
 

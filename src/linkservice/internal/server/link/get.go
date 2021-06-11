@@ -7,7 +7,7 @@ import (
 	"github.com/go-chi/render"
 	"go.uber.org/zap"
 
-	se "github.com/lapitskyss/go_backend_1_project/pkg/server_errors"
+	se "github.com/lapitskyss/go_backend_1_project/src/linkservice/pkg/server_errors"
 )
 
 func (api *linkController) Get(w http.ResponseWriter, r *http.Request) {

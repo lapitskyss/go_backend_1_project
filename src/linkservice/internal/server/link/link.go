@@ -5,7 +5,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/lapitskyss/go_backend_1_project/internal/repository/postgres"
+	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/repository/postgres"
 )
 
 type linkController struct {

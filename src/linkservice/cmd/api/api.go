@@ -5,7 +5,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/lapitskyss/go_backend_1_project/internal/di"
+	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/di"
 )
 
 func main() {

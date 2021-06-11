@@ -10,8 +10,8 @@ import (
 	"github.com/google/wire"
 	"go.uber.org/zap"
 
-	"github.com/lapitskyss/go_backend_1_project/internal/repository/postgres"
-	"github.com/lapitskyss/go_backend_1_project/internal/server"
+	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/repository/postgres"
+	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/server"
 )
 
 type ApiService struct {

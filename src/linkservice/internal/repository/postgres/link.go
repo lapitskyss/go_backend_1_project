@@ -5,9 +5,9 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v4"
-	"github.com/lapitskyss/go_backend_1_project/pkg/pointer"
+	"github.com/lapitskyss/go_backend_1_project/src/linkservice/pkg/pointer"
 
-	"github.com/lapitskyss/go_backend_1_project/internal/model"
+	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/model"
 )
 
 var (

@@ -1,6 +1,6 @@
 package repository
 
-import "github.com/lapitskyss/go_backend_1_project/internal/model"
+import "github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/model"
 
 type Repository interface {
 	AddLink(link *model.Link) (*model.Link, error)

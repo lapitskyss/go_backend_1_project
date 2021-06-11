@@ -1,4 +1,4 @@
-module github.com/lapitskyss/go_backend_1_project
+module github.com/lapitskyss/go_backend_1_project/src/linkservice
 
 go 1.15
 

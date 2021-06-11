@@ -7,11 +7,11 @@ import (
 
 	"github.com/go-chi/render"
 	"github.com/gorilla/schema"
-	"github.com/lapitskyss/go_backend_1_project/internal/model"
-	"github.com/lapitskyss/go_backend_1_project/pkg/pointer"
+	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/model"
+	"github.com/lapitskyss/go_backend_1_project/src/linkservice/pkg/pointer"
 	"go.uber.org/zap"
 
-	se "github.com/lapitskyss/go_backend_1_project/pkg/server_errors"
+	se "github.com/lapitskyss/go_backend_1_project/src/linkservice/pkg/server_errors"
 )
 
 type listParameters struct {
@@ -92,6 +92,12 @@ func getQueryParams(r *http.Request) (*listParameters, error) {
 func validateQueryParams(params *listParameters) error {
 	if params.Limit != nil && *params.Limit > 100 {
 		return errors.New("maximum limit is 100")
+	}
+	if params.Limit != nil && *params.Limit <= 0 {
+		return errors.New("limit can not be less or 0")
+	}
+	if params.Page != nil && *params.Page <= 0 {
+		return errors.New("page can not be less or 0")
 	}
 	if params.Sort != nil && !isValidSort(*params.Sort) {
 		return errors.New("invalid sort value, available values: url, hash, created_at")

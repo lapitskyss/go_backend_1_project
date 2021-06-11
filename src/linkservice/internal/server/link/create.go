@@ -11,8 +11,8 @@ import (
 	"github.com/speps/go-hashids/v2"
 	"go.uber.org/zap"
 
-	"github.com/lapitskyss/go_backend_1_project/internal/model"
-	se "github.com/lapitskyss/go_backend_1_project/pkg/server_errors"
+	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/model"
+	se "github.com/lapitskyss/go_backend_1_project/src/linkservice/pkg/server_errors"
 )
 
 type createLinkParams struct {

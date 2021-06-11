@@ -4,7 +4,7 @@ services:
     server:
         build:
             context: .
-            dockerfile: ops/dockerfile/server/Dockerfile
+            dockerfile: src/linkservice/Dockerfile
         container_name: ${APP_NAME}_server
         ports:
             - "3000:3000"
@@ -17,7 +17,22 @@ services:
             - postgres
             - flyway
         volumes:
-            - .:/app
+            - ./src/linkservice:/app
+
+    client:
+        build:
+            context: .
+            dockerfile: src/frontend/Dockerfile
+        container_name: ${APP_NAME}_client
+        ports:
+            - "3001:3001"
+        environment:
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+            POSTGRES_DB: ${POSTGRES_DB}
+            POSTGRES_USER: ${POSTGRES_USER}
+            POSTGRES_PORT: ${POSTGRES_PORT}
+        volumes:
+            - ./src/frontend:/app
 
     postgres:
         image: postgres:12.6
