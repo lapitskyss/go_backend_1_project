@@ -1,6 +1,5 @@
 //go:generate wire
 //+build wireinject
-// The build tag makes sure the stub is not built in the final build.
 
 package di
 
@@ -24,7 +23,6 @@ var APISet = wire.NewSet(
 	InitLogger,
 	InitServer,
 	InitPostgresqlStore,
-	//InitFileStore,
 )
 
 func InitApiService(log *zap.SugaredLogger, api *server.Api) (*ApiService, error) {

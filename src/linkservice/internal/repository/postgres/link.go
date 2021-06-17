@@ -144,8 +144,12 @@ func (store *Store) FindLinks(page uint64, limit uint64, sort *string, order *st
 	return &links, nil
 }
 
-func (store *Store) CountAllLinks() (*uint64, error) {
-	q, args, err := psql.Select("count(*) as n_links").From("links").ToSql()
+func (store *Store) CountLinksByQuery(query *string) (*uint64, error) {
+	sb := psql.Select("count(*) as n_links").From("links")
+	if query != nil {
+		sb = sb.Where(sq.Like{"url": "%" + *query + "%"})
+	}
+	q, args, err := sb.ToSql()
 	if err != nil {
 		return nil, err
 	}

@@ -1,0 +1,75 @@
+//go:generate wire
+//+build wireinject
+
+package di
+
+import (
+	"context"
+
+	"github.com/google/wire"
+	"go.uber.org/zap"
+
+	"github.com/lapitskyss/go_backend_1_project/src/frontend/internal/server"
+	"github.com/lapitskyss/go_backend_1_project/src/frontend/pkg/api"
+)
+
+type FrontendService struct {
+	Log *zap.SugaredLogger
+}
+
+var FrontendSet = wire.NewSet(
+	InitFrontendService,
+	InitContext,
+	InitLogger,
+	InitClient,
+	InitServer,
+)
+
+func InitFrontendService(log *zap.SugaredLogger, f *server.Frontend) (*FrontendService, error) {
+	return &FrontendService{
+		Log: log,
+	}, nil
+}
+
+func InitializeFrontendService() (*FrontendService, func(), error) {
+	panic(wire.Build(FrontendSet))
+}
+
+func InitContext() (context.Context, func(), error) {
+	ctx := context.Background()
+
+	cb := func() {
+		ctx.Done()
+	}
+
+	return ctx, cb, nil
+}
+
+func InitLogger() (*zap.SugaredLogger, func(), error) {
+	logger, _ := zap.NewProduction()
+
+	cleanup := func() {
+		logger.Sync()
+	}
+
+	sugar := logger.Sugar()
+
+	return sugar, cleanup, nil
+}
+
+func InitClient() (*api.Client, error) {
+	client := api.NewClient(nil)
+	return client, nil
+}
+
+func InitServer(ctx context.Context, log *zap.SugaredLogger, client *api.Client) (*server.Frontend, func(), error) {
+	server := server.NewFrontendServer(ctx, log, client)
+
+	cleanup := func() {
+		server.Stop()
+	}
+
+	server.Start()
+
+	return server, cleanup, nil
+}

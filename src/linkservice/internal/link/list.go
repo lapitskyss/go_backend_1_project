@@ -55,7 +55,7 @@ func (api *linkController) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Определяем количество ссылок в базе
-	totalLinks, err := api.rep.CountAllLinks()
+	totalLinks, err := api.rep.CountLinksByQuery(params.Query)
 	if err != nil {
 		api.log.Error(zap.Error(err))
 		se.NotFoundError(w, r)

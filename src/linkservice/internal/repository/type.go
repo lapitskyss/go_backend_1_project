@@ -8,5 +8,5 @@ type Repository interface {
 	GetExistingLink(url string) (*bool, *model.Link, error)
 	GetLinkByHash(hash string) (*model.Link, error)
 	FindLinks(page uint64, limit uint64, sort *string, order *string, query *string) (*[]*model.Link, error)
-	CountAllLinks() (*uint64, error)
+	CountLinksByQuery(query *string) (*uint64, error)
 }

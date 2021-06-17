@@ -1,47 +1,28 @@
 package main
 
 import (
-	"html/template"
-	"log"
-	"net/http"
 	"os"
-	"path/filepath"
-	"time"
+	"os/signal"
+	"syscall"
 
-	"github.com/go-chi/chi/v5"
+	"github.com/lapitskyss/go_backend_1_project/src/frontend/internal/di"
 )
 
 func main() {
-	r := chi.NewRouter()
-
-	r.Get("/", home)
-
-	server := http.Server{
-		Addr:    ":3001",
-		Handler: r,
-
-		ReadTimeout:       1 * time.Second,
-		WriteTimeout:      90 * time.Second,
-		IdleTimeout:       30 * time.Second,
-		ReadHeaderTimeout: 2 * time.Second,
-	}
-
-	server.ListenAndServe()
-}
-
-func home(w http.ResponseWriter, r *http.Request) {
-	wd, err := os.Getwd()
+	service, cleanup, err := di.InitializeFrontendService()
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
-	templatePath := filepath.Join(wd, "./templates/index.html")
 
-	tpl, err := template.ParseFiles(templatePath)
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = tpl.ExecuteTemplate(w, "index.html", nil)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+	defer func() {
+		if r := recover(); r != nil {
+			service.Log.Error(r.(string))
+		}
+	}()
+
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)
+	<-sigs
+
+	cleanup()
 }
