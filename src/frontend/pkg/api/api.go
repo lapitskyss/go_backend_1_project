@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -13,9 +12,7 @@ import (
 )
 
 const (
-	// TODO: move variable to config file
-	defaultBaseURL = "http://server:3000/api/v1/"
-	userAgent      = "frontend-api"
+	userAgent = "frontend-api"
 )
 
 var errNonNilContext = errors.New("context must be non-nil")
@@ -36,22 +33,26 @@ type service struct {
 	client *Client
 }
 
-func NewClient(httpClient *http.Client) *Client {
+func NewClient(baseURL string, httpClient *http.Client) (*Client, error) {
+	baseEndpoint, err := url.Parse(baseURL)
+	if err != nil {
+		return nil, err
+	}
+	if !strings.HasSuffix(baseEndpoint.Path, "/") {
+		baseEndpoint.Path += "/"
+	}
+
 	if httpClient == nil {
 		httpClient = &http.Client{}
 	}
 
-	baseURL, _ := url.Parse(defaultBaseURL)
-	c := &Client{client: httpClient, BaseURL: baseURL, UserAgent: userAgent}
+	c := &Client{client: httpClient, BaseURL: baseEndpoint, UserAgent: userAgent}
 	c.common.client = c
 	c.Link = (*LinkService)(&c.common)
-	return c
+	return c, nil
 }
 
 func (c *Client) NewRequest(method, urlStr string, body interface{}) (*http.Request, error) {
-	if !strings.HasSuffix(c.BaseURL.Path, "/") {
-		return nil, fmt.Errorf("BaseURL must have a trailing slash, but %q does not", c.BaseURL)
-	}
 	var err error
 	u, err := c.BaseURL.Parse(urlStr)
 	if err != nil {

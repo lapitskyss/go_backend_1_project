@@ -5,6 +5,7 @@ package di
 
 import (
 	"context"
+	"os"
 
 	"github.com/google/wire"
 	"go.uber.org/zap"
@@ -58,7 +59,11 @@ func InitLogger() (*zap.SugaredLogger, func(), error) {
 }
 
 func InitClient() (*api.Client, error) {
-	client := api.NewClient(nil)
+	client, err := api.NewClient(os.Getenv("LINKSERVICE_BASE_URL"), nil)
+	if err != nil {
+		return nil, err
+	}
+
 	return client, nil
 }
 

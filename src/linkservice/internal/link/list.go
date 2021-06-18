@@ -90,14 +90,16 @@ func getQueryParams(r *http.Request) (*listParameters, error) {
 }
 
 func validateQueryParams(params *listParameters) error {
-	if params.Limit != nil && *params.Limit > 100 {
-		return errors.New("maximum limit is 100")
-	}
-	if params.Limit != nil && *params.Limit <= 0 {
-		return errors.New("limit can not be less or 0")
+	if params.Limit != nil {
+		if *params.Limit <= 0 {
+			return errors.New("limit can not be less or equal 0")
+		}
+		if *params.Limit > 100 {
+			return errors.New("maximum limit is 100")
+		}
 	}
 	if params.Page != nil && *params.Page <= 0 {
-		return errors.New("page can not be less or 0")
+		return errors.New("page can not be less or equal 0")
 	}
 	if params.Sort != nil && !isValidSort(*params.Sort) {
 		return errors.New("invalid sort value, available values: url, hash, created_at")

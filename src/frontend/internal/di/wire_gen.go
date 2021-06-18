@@ -11,6 +11,7 @@ import (
 	"github.com/lapitskyss/go_backend_1_project/src/frontend/internal/server"
 	"github.com/lapitskyss/go_backend_1_project/src/frontend/pkg/api"
 	"go.uber.org/zap"
+	"os"
 )
 
 // Injectors from wire.go:
@@ -94,7 +95,11 @@ func InitLogger() (*zap.SugaredLogger, func(), error) {
 }
 
 func InitClient() (*api.Client, error) {
-	client := api.NewClient(nil)
+	client, err := api.NewClient(os.Getenv("LINKSERVICE_BASE_URL"), nil)
+	if err != nil {
+		return nil, err
+	}
+
 	return client, nil
 }
 

@@ -70,6 +70,7 @@
                 this.isLoading = false;
                 this.isShortURLCreated = true;
                 this.shortUrl = window.location.origin + '/' + newLink.data.hash;
+                LinkService.saveUserLinks(newLink.data)
             },
             async copyShortURL() {
                 const { toClipboard } = useClipboard();

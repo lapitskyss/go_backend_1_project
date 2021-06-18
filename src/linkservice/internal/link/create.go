@@ -23,7 +23,9 @@ func (api *linkController) Create(w http.ResponseWriter, r *http.Request) {
 	params := &createLinkParams{}
 
 	// Декодим тело запроса
-	err := json.NewDecoder(r.Body).Decode(params)
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	err := decoder.Decode(params)
 	if err != nil {
 		se.BadRequestError(w, r, err)
 		return
