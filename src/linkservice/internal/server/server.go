@@ -34,6 +34,7 @@ func New(ctx context.Context, log *zap.SugaredLogger, rep *postgres.Store) *Api 
 	})
 
 	r.Use(corsHandler.Handler)
+	r.Use(middleware.AllowContentType("application/json"))
 	r.Use(render.SetContentType(render.ContentTypeJSON))
 	r.Use(middleware.Timeout(60 * time.Second))
 	r.NotFound(server_errors.NotFoundError)

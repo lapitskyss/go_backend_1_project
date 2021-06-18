@@ -23,11 +23,11 @@ func NewFrontendServer(ctx context.Context, log *zap.SugaredLogger, client *api.
 
 	r.Use(middleware.Timeout(60 * time.Second))
 
-	controller := controller.NewController(ctx, log, client)
+	cnt := controller.NewController(ctx, log, client)
 
 	FileServerForStatic(r)
-	r.Get("/{hash}", controller.Redirect)
-	r.Get("/*", controller.Home)
+	r.Get("/{hash}", cnt.Redirect)
+	r.Get("/*", cnt.Home)
 
 	return &Frontend{
 		server: http.Server{
