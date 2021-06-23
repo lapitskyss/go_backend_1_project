@@ -15,7 +15,7 @@ import (
 
 // Injectors from wire.go:
 
-func InitializeAPIService() (*ApiService, func(), error) {
+func InitializeLinkService() (*LinkService, func(), error) {
 	sugaredLogger, cleanup, err := InitLogger()
 	if err != nil {
 		return nil, nil, err
@@ -31,14 +31,14 @@ func InitializeAPIService() (*ApiService, func(), error) {
 		cleanup()
 		return nil, nil, err
 	}
-	api, cleanup4, err := InitServer(context, sugaredLogger, store)
+	httpServer, cleanup4, err := InitHttpServer(context, sugaredLogger, store)
 	if err != nil {
 		cleanup3()
 		cleanup2()
 		cleanup()
 		return nil, nil, err
 	}
-	apiService, err := InitApiService(sugaredLogger, api)
+	grpsServer, cleanup5, err := InitGRPCServer(context, sugaredLogger, store)
 	if err != nil {
 		cleanup4()
 		cleanup3()
@@ -46,7 +46,17 @@ func InitializeAPIService() (*ApiService, func(), error) {
 		cleanup()
 		return nil, nil, err
 	}
-	return apiService, func() {
+	linkService, err := InitLinkService(sugaredLogger, httpServer, grpsServer)
+	if err != nil {
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return nil, nil, err
+	}
+	return linkService, func() {
+		cleanup5()
 		cleanup4()
 		cleanup3()
 		cleanup2()
@@ -56,20 +66,21 @@ func InitializeAPIService() (*ApiService, func(), error) {
 
 // wire.go:
 
-type ApiService struct {
+type LinkService struct {
 	Log *zap.SugaredLogger
 }
 
-var APISet = wire.NewSet(
-	InitApiService,
+var LinkServiceSet = wire.NewSet(
+	InitLinkService,
 	InitContext,
 	InitLogger,
-	InitServer,
+	InitHttpServer,
+	InitGRPCServer,
 	InitPostgresqlStore,
 )
 
-func InitApiService(log *zap.SugaredLogger, api *server.Api) (*ApiService, error) {
-	return &ApiService{
+func InitLinkService(log *zap.SugaredLogger, hs *server.HTTPServer, gs *server.GRPSServer) (*LinkService, error) {
+	return &LinkService{
 		Log: log,
 	}, nil
 }
@@ -96,8 +107,8 @@ func InitLogger() (*zap.SugaredLogger, func(), error) {
 	return sugar, cleanup, nil
 }
 
-func InitServer(ctx context.Context, log *zap.SugaredLogger, rep *postgres.Store) (*server.Api, func(), error) {
-	server2 := server.New(ctx, log, rep)
+func InitHttpServer(ctx context.Context, log *zap.SugaredLogger, rep *postgres.Store) (*server.HTTPServer, func(), error) {
+	server2 := server.NewHTTPServer(ctx, log, rep)
 
 	cleanup := func() {
 		server2.
@@ -109,9 +120,21 @@ func InitServer(ctx context.Context, log *zap.SugaredLogger, rep *postgres.Store
 	return server2, cleanup, nil
 }
 
+func InitGRPCServer(ctx context.Context, log *zap.SugaredLogger, rep *postgres.Store) (*server.GRPSServer, func(), error) {
+	server2 := server.NewGRPCServer(ctx, log, rep)
+
+	cleanup := func() {
+		server2.
+			StopServer()
+	}
+	server2.
+		StartServer()
+
+	return server2, cleanup, nil
+}
+
 func InitPostgresqlStore(ctx context.Context) (*postgres.Store, func(), error) {
-	store := &postgres.Store{}
-	err := store.Init(ctx)
+	store, err := postgres.NewStore(ctx)
 
 	if err != nil {
 		return nil, nil, err

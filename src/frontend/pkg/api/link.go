@@ -13,7 +13,7 @@ type Link struct {
 	CreatedAt *Timestamp `json:"created_at,omitempty"`
 }
 
-var ErrLinkNotFound = errors.New("request error")
+var ErrLinkNotFound = errors.New("link not found")
 
 func (s *LinkService) GetLinkByHash(ctx context.Context, hash string) (*Link, error) {
 	u := "link/" + hash

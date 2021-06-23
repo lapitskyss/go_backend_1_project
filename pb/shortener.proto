@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package shortener;
+
+// -----------------Link service-----------------
+
+service LinkService {
+    rpc GetLink(GetLinkRequest) returns (Link) {}
+}
+
+message GetLinkRequest {
+    string hash = 1;
+}
+
+message Link {
+    string url = 1;
+    string hash = 2;
+}

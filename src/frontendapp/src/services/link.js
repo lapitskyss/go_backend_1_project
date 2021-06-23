@@ -4,10 +4,12 @@ const LinkService = {
     create(url) {
         return axios.post('/links', { url })
     },
-    findBy(page, limit, query) {
+    findBy(page, limit, query, sort = 'created_at', order= 'desc') {
         const params = {
             page,
-            limit
+            limit,
+            sort,
+            order
         };
         if(query) {
             params.query = query;
@@ -17,19 +19,30 @@ const LinkService = {
             params
         })
     },
-    saveUserLinks(link) {
-        let userLinks = this.getUserLinks();
-        userLinks.push(link);
+    saveUserLink(linkHash) {
+        let userLinks = this.getUserLinksHashes();
+        if(userLinks.includes(linkHash) === false) {
+            userLinks.unshift(linkHash);
 
-        localStorage.setItem("_links", JSON.stringify(userLinks));
+            localStorage.setItem("_links", JSON.stringify(userLinks));
+        }
     },
-    getUserLinks() {
+    getUserLinksHashes() {
         let links = localStorage.getItem("_links");
         if(!links) {
             return []
         }
 
         return JSON.parse(links);
+    },
+    getUserLinks(ids) {
+        const params = {
+            ids: ids.join()
+        };
+
+        return axios.get('/links', {
+            params
+        })
     }
 };
 

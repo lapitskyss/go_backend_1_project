@@ -1,13 +1,11 @@
 package controller
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"go.uber.org/zap"
 
-	"github.com/lapitskyss/go_backend_1_project/src/frontend/pkg/api"
+	"github.com/lapitskyss/go_backend_1_project/src/frontend/pkg/rpc"
 )
 
 func (c *controller) Redirect(w http.ResponseWriter, r *http.Request) {
@@ -17,24 +15,24 @@ func (c *controller) Redirect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	link, err := c.client.Link.GetLinkByHash(c.ctx, hash)
+	link, err := c.fe.GetLink(c.ctx, hash)
 	if err != nil {
-		if err != api.ErrLinkNotFound {
-			c.log.Error(zap.Error(err))
+		if err != rpc.ErrLinkNotFound {
+			c.log.Error(err)
 		}
 
 		c.Home(w, r)
 		return
 	}
 
-	if link == nil || link.URL == nil {
-		c.log.Error(zap.Error(errors.New("link url not provided")))
+	if link == nil {
+		c.log.Error("link url not provided")
 		c.Home(w, r)
 		return
 	}
 
 	// TODO: add redirect statistic
 
-	http.Redirect(w, r, *link.URL, 301)
+	http.Redirect(w, r, link.Url, 301)
 	return
 }

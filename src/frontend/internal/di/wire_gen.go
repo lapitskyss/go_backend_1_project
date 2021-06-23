@@ -10,6 +10,7 @@ import (
 	"github.com/google/wire"
 	"github.com/lapitskyss/go_backend_1_project/src/frontend/internal/server"
 	"github.com/lapitskyss/go_backend_1_project/src/frontend/pkg/api"
+	"github.com/lapitskyss/go_backend_1_project/src/frontend/pkg/rpc"
 	"go.uber.org/zap"
 	"os"
 )
@@ -26,13 +27,13 @@ func InitializeFrontendService() (*FrontendService, func(), error) {
 		cleanup()
 		return nil, nil, err
 	}
-	client, err := InitClient()
+	frontendServer, err := NewGRPCClient(context)
 	if err != nil {
 		cleanup2()
 		cleanup()
 		return nil, nil, err
 	}
-	frontend, cleanup3, err := InitServer(context, sugaredLogger, client)
+	frontend, cleanup3, err := InitServer(context, sugaredLogger, frontendServer)
 	if err != nil {
 		cleanup2()
 		cleanup()
@@ -63,6 +64,7 @@ var FrontendSet = wire.NewSet(
 	InitContext,
 	InitLogger,
 	InitClient,
+	NewGRPCClient,
 	InitServer,
 )
 
@@ -103,8 +105,17 @@ func InitClient() (*api.Client, error) {
 	return client, nil
 }
 
-func InitServer(ctx context.Context, log *zap.SugaredLogger, client *api.Client) (*server.Frontend, func(), error) {
-	server2 := server.NewFrontendServer(ctx, log, client)
+func NewGRPCClient(ctx context.Context) (*rpc.FrontendServer, error) {
+	client, err := rpc.NewGRPCClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return client, nil
+}
+
+func InitServer(ctx context.Context, log *zap.SugaredLogger, fe *rpc.FrontendServer) (*server.Frontend, func(), error) {
+	server2 := server.NewFrontendServer(ctx, log, fe)
 
 	cleanup := func() {
 		server2.

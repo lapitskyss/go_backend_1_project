@@ -12,6 +12,7 @@ import (
 
 	"github.com/lapitskyss/go_backend_1_project/src/frontend/internal/server"
 	"github.com/lapitskyss/go_backend_1_project/src/frontend/pkg/api"
+	"github.com/lapitskyss/go_backend_1_project/src/frontend/pkg/rpc"
 )
 
 type FrontendService struct {
@@ -23,6 +24,7 @@ var FrontendSet = wire.NewSet(
 	InitContext,
 	InitLogger,
 	InitClient,
+	NewGRPCClient,
 	InitServer,
 )
 
@@ -67,8 +69,17 @@ func InitClient() (*api.Client, error) {
 	return client, nil
 }
 
-func InitServer(ctx context.Context, log *zap.SugaredLogger, client *api.Client) (*server.Frontend, func(), error) {
-	server := server.NewFrontendServer(ctx, log, client)
+func NewGRPCClient(ctx context.Context) (*rpc.FrontendServer, error) {
+	client, err := rpc.NewGRPCClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return client, nil
+}
+
+func InitServer(ctx context.Context, log *zap.SugaredLogger, fe *rpc.FrontendServer) (*server.Frontend, func(), error) {
+	server := server.NewFrontendServer(ctx, log, fe)
 
 	cleanup := func() {
 		server.Stop()

@@ -11,17 +11,19 @@ import (
 	"github.com/go-chi/render"
 	"go.uber.org/zap"
 
-	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/link"
+	linkhttp "github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/link/http"
+	mw "github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/middleware"
 	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/repository/postgres"
 	"github.com/lapitskyss/go_backend_1_project/src/linkservice/pkg/server_errors"
+	"github.com/lapitskyss/go_backend_1_project/src/linkservice/pkg/server_port"
 )
 
-type Api struct {
+type HTTPServer struct {
 	server http.Server
 	log    *zap.SugaredLogger
 }
 
-func New(ctx context.Context, log *zap.SugaredLogger, rep *postgres.Store) *Api {
+func NewHTTPServer(ctx context.Context, log *zap.SugaredLogger, rep *postgres.Store) *HTTPServer {
 	r := chi.NewRouter()
 
 	corsHandler := cors.New(cors.Options{
@@ -36,20 +38,22 @@ func New(ctx context.Context, log *zap.SugaredLogger, rep *postgres.Store) *Api 
 	r.Use(corsHandler.Handler)
 	r.Use(middleware.AllowContentType("application/json"))
 	r.Use(render.SetContentType(render.ContentTypeJSON))
+	r.Use(mw.Recoverer(log))
 	r.Use(middleware.Timeout(60 * time.Second))
 	r.NotFound(server_errors.NotFoundError)
 
-	linkController := link.New(ctx, log, rep)
+	linkController := linkhttp.New(ctx, log, rep)
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Post("/links", linkController.Create)
 		r.Get("/links", linkController.List)
-		r.Get("/link/{hash}", linkController.Get)
 	})
 
-	return &Api{
+	port := server_port.GetServerPortFromEnv("LINKSERVICE_HTTP_PORT", 3000)
+
+	return &HTTPServer{
 		server: http.Server{
-			Addr:    ":3000",
+			Addr:    port,
 			Handler: r,
 
 			ReadTimeout:       1 * time.Second,
@@ -61,18 +65,18 @@ func New(ctx context.Context, log *zap.SugaredLogger, rep *postgres.Store) *Api 
 	}
 }
 
-func (api *Api) Start() {
-	api.log.Info("Server started.")
+func (srv *HTTPServer) Start() {
+	srv.log.Info("Linkservice HTTP server started.")
 	go func() {
-		err := api.server.ListenAndServe()
+		err := srv.server.ListenAndServe()
 		if err != nil && err != http.ErrServerClosed {
-			api.log.Error("Server return error", zap.NamedError("sever_error", err))
+			srv.log.Error("Linkservice HTTP server return error", zap.NamedError("sever_error", err))
 		}
 	}()
 }
 
-func (api *Api) Stop() error {
+func (srv *HTTPServer) Stop() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	return api.server.Shutdown(ctx)
+	return srv.server.Shutdown(ctx)
 }

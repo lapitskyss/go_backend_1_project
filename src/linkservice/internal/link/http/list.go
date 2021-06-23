@@ -1,25 +1,28 @@
-package link
+package http
 
 import (
 	"errors"
 	"math"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/render"
 	"github.com/gorilla/schema"
-	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/model"
-	"github.com/lapitskyss/go_backend_1_project/src/linkservice/pkg/pointer"
-	"go.uber.org/zap"
 
+	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/model"
+	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/repository/postgres"
+	"github.com/lapitskyss/go_backend_1_project/src/linkservice/pkg/pointer"
 	se "github.com/lapitskyss/go_backend_1_project/src/linkservice/pkg/server_errors"
 )
 
 type listParameters struct {
-	Page  *uint64 `schema:"page"`
-	Limit *uint64 `schema:"limit"`
-	Sort  *string `schema:"sort"`  // url, hash, created_at
-	Order *string `schema:"order"` // asc, desc
-	Query *string `schema:"query"`
+	Page        *uint64   `schema:"page"`
+	Limit       *uint64   `schema:"limit"`
+	Sort        *string   `schema:"sort"`  // url, hash, created_at
+	Order       *string   `schema:"order"` // asc, desc
+	Query       *string   `schema:"query"`
+	Hashes      *string   `schema:"ids"`
+	HashesSlice *[]string `schema:"-"`
 }
 
 type linksList struct {
@@ -32,33 +35,46 @@ type linksList struct {
 }
 
 func (api *linkController) List(w http.ResponseWriter, r *http.Request) {
-	// Получаем параметры с запроса
+	// Получаем провалидированные параметры с запроса
 	params, err := getQueryParams(r)
 	if err != nil {
 		se.BadRequestError(w, r, err)
 		return
 	}
 
-	// Валидируем параметры
-	err = validateQueryParams(params)
-	if err != nil {
-		se.BadRequestError(w, r, err)
+	// Находим список ссылок по слайсу хэшов
+	if params.HashesSlice != nil {
+		links := &[]*model.Link{}
+		links, err = api.rep.Link.GetByHashes(params.HashesSlice)
+		if err != nil {
+			api.log.Error(err)
+			se.InternalServerError(w, r)
+			return
+		}
+
+		render.JSON(w, r, links)
 		return
 	}
 
 	// Получаем слайс ссылок по заданным параметрам
-	links, err := api.rep.FindLinks(*params.Page, *params.Limit, params.Sort, params.Order, params.Query)
+	links, err := api.rep.Link.FindBy(&postgres.FindByParameters{
+		Page:  *params.Page,
+		Limit: *params.Limit,
+		Sort:  params.Sort,
+		Order: params.Order,
+		Query: params.Query,
+	})
 	if err != nil {
-		api.log.Error(zap.Error(err))
-		se.NotFoundError(w, r)
+		api.log.Error(err)
+		se.InternalServerError(w, r)
 		return
 	}
 
 	// Определяем количество ссылок в базе
-	totalLinks, err := api.rep.CountLinksByQuery(params.Query)
+	totalLinks, err := api.rep.Link.CountByQuery(params.Query)
 	if err != nil {
-		api.log.Error(zap.Error(err))
-		se.NotFoundError(w, r)
+		api.log.Error(err)
+		se.InternalServerError(w, r)
 		return
 	}
 
@@ -86,7 +102,34 @@ func getQueryParams(r *http.Request) (*listParameters, error) {
 		params.Limit = pointer.Uint64(10)
 	}
 
+	err = validateQueryParams(&params)
+	if err != nil {
+		return nil, err
+	}
+
+	if params.Hashes != nil {
+		err := validateQueryHashes(&params)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return &params, nil
+}
+
+func validateQueryHashes(params *listParameters) error {
+	if len(*params.Hashes) > 2000 {
+		return errors.New("maximum limit for URLs is 100")
+	}
+	hashesSlice := strings.Split(*params.Hashes, ",")
+	hashesSliceLength := len(hashesSlice)
+
+	if hashesSliceLength > 100 {
+		return errors.New("maximum limit for URLs is 100")
+	}
+	params.HashesSlice = &hashesSlice
+
+	return nil
 }
 
 func validateQueryParams(params *listParameters) error {

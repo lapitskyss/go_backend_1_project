@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	service, cleanup, err := di.InitializeAPIService()
+	service, cleanup, err := di.InitializeLinkService()
 	if err != nil {
 		panic(err)
 	}

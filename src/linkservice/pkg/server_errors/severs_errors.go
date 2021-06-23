@@ -11,7 +11,7 @@ func NotFoundError(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, r, struct {
 		Status bool   `json:"status"`
 		Error  string `json:"error"`
-	}{false, "Not found"})
+	}{false, "Not found."})
 }
 
 func BadRequestError(w http.ResponseWriter, r *http.Request, err error) {
@@ -20,4 +20,12 @@ func BadRequestError(w http.ResponseWriter, r *http.Request, err error) {
 		Status bool   `json:"status"`
 		Error  string `json:"error"`
 	}{false, err.Error()})
+}
+
+func InternalServerError(w http.ResponseWriter, r *http.Request) {
+	render.Status(r, http.StatusNotFound)
+	render.JSON(w, r, struct {
+		Status bool   `json:"status"`
+		Error  string `json:"error"`
+	}{false, "Unexpected error occurred. Please try request later."})
 }

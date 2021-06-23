@@ -1,37 +1,42 @@
 version: '2.4'
 
 services:
-    server:
+    linkservice:
         build:
-            context: .
-            dockerfile: src/linkservice/Dockerfile
-        container_name: ${APP_NAME}_server
+            context: ./src/linkservice/
+            dockerfile: Dockerfile
+            target: develop
+        container_name: ${APP_NAME}_linkservice
         ports:
-            - "3000:3000"
+            - "${LINKSERVICE_HTTP_PORT}:${LINKSERVICE_HTTP_PORT}"
         environment:
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
             POSTGRES_DB: ${POSTGRES_DB}
             POSTGRES_USER: ${POSTGRES_USER}
             POSTGRES_PORT: ${POSTGRES_PORT}
+            LINKSERVICE_HTTP_PORT: ${LINKSERVICE_HTTP_PORT}
+            LINKSERVICE_GRPC_PORT: ${LINKSERVICE_GRPC_PORT}
         depends_on:
             - postgres
             - flyway
         volumes:
             - ./src/linkservice:/app
 
-    client:
+    frontend:
         build:
-            context: .
-            dockerfile: src/frontend/Dockerfile
-        container_name: ${APP_NAME}_client
+            context: ./src/frontend/
+            dockerfile: Dockerfile
+            target: develop
+        container_name: ${APP_NAME}_frontend
         ports:
-            - "3001:3001"
+            - "${FRONTEND_HTTP_PORT}:${FRONTEND_HTTP_PORT}"
         environment:
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
             POSTGRES_DB: ${POSTGRES_DB}
             POSTGRES_USER: ${POSTGRES_USER}
             POSTGRES_PORT: ${POSTGRES_PORT}
-            LINKSERVICE_BASE_URL: ${LINKSERVICE_BASE_URL}
+            FRONTEND_HTTP_PORT: ${FRONTEND_HTTP_PORT}
+            LINKSERVICE_SERVICE_ADDR: ${LINKSERVICE_SERVICE_ADDR}
         volumes:
             - ./src/frontend:/app
 

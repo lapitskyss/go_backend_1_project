@@ -1,4 +1,4 @@
-package link
+package http
 
 import (
 	"encoding/json"
@@ -9,7 +9,6 @@ import (
 
 	"github.com/go-chi/render"
 	"github.com/speps/go-hashids/v2"
-	"go.uber.org/zap"
 
 	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/model"
 	se "github.com/lapitskyss/go_backend_1_project/src/linkservice/pkg/server_errors"
@@ -39,10 +38,10 @@ func (api *linkController) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Проверяем что короткая ссылка уже есть для URL
-	isExist, existingLink, err := api.rep.GetExistingLink(params.URL)
+	isExist, existingLink, err := api.rep.Link.GetByURL(params.URL)
 	if err != nil {
-		api.log.Error(zap.Error(err))
-		se.BadRequestError(w, r, err)
+		api.log.Error(err)
+		se.InternalServerError(w, r)
 		return
 	}
 
@@ -53,10 +52,10 @@ func (api *linkController) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Получаем id короткой ссылки
-	nextId, err := api.rep.GetNextLinkId()
+	nextId, err := api.rep.Link.GetNextId()
 	if err != nil {
-		api.log.Error(zap.Error(err))
-		se.BadRequestError(w, r, err)
+		api.log.Error(err)
+		se.InternalServerError(w, r)
 		return
 	}
 
@@ -64,10 +63,10 @@ func (api *linkController) Create(w http.ResponseWriter, r *http.Request) {
 	link := initLink(params, nextId)
 
 	// Создаем ссылку
-	link, err = api.rep.AddLink(link)
+	link, err = api.rep.Link.Add(link)
 	if err != nil {
-		api.log.Error(zap.Error(err))
-		se.BadRequestError(w, r, err)
+		api.log.Error(err)
+		se.InternalServerError(w, r)
 		return
 	}
 

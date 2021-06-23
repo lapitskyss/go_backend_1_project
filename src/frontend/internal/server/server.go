@@ -10,7 +10,9 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/lapitskyss/go_backend_1_project/src/frontend/internal/controller"
-	"github.com/lapitskyss/go_backend_1_project/src/frontend/pkg/api"
+	mw "github.com/lapitskyss/go_backend_1_project/src/frontend/internal/middleware"
+	"github.com/lapitskyss/go_backend_1_project/src/frontend/pkg/rpc"
+	"github.com/lapitskyss/go_backend_1_project/src/frontend/pkg/server_port"
 )
 
 type Frontend struct {
@@ -18,20 +20,24 @@ type Frontend struct {
 	log    *zap.SugaredLogger
 }
 
-func NewFrontendServer(ctx context.Context, log *zap.SugaredLogger, client *api.Client) *Frontend {
+func NewFrontendServer(ctx context.Context, log *zap.SugaredLogger, fe *rpc.FrontendServer) *Frontend {
 	r := chi.NewRouter()
 
+	r.Use(mw.Recoverer(log))
+	r.Use(middleware.RealIP)
 	r.Use(middleware.Timeout(60 * time.Second))
 
-	cnt := controller.NewController(ctx, log, client)
+	cnt := controller.NewController(ctx, log, fe)
 
 	FileServerForStatic(r)
 	r.Get("/{hash}", cnt.Redirect)
 	r.Get("/*", cnt.Home)
 
+	port := server_port.GetServerPortFromEnv("FRONTEND_HTTP_PORT", 3001)
+
 	return &Frontend{
 		server: http.Server{
-			Addr:    ":3001",
+			Addr:    port,
 			Handler: r,
 
 			ReadTimeout:       1 * time.Second,

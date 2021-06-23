@@ -13,26 +13,27 @@ import (
 	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/server"
 )
 
-type ApiService struct {
+type LinkService struct {
 	Log *zap.SugaredLogger
 }
 
-var APISet = wire.NewSet(
-	InitApiService,
+var LinkServiceSet = wire.NewSet(
+	InitLinkService,
 	InitContext,
 	InitLogger,
-	InitServer,
+	InitHttpServer,
+	InitGRPCServer,
 	InitPostgresqlStore,
 )
 
-func InitApiService(log *zap.SugaredLogger, api *server.Api) (*ApiService, error) {
-	return &ApiService{
+func InitLinkService(log *zap.SugaredLogger, hs *server.HTTPServer, gs *server.GRPSServer) (*LinkService, error) {
+	return &LinkService{
 		Log: log,
 	}, nil
 }
 
-func InitializeAPIService() (*ApiService, func(), error) {
-	panic(wire.Build(APISet))
+func InitializeLinkService() (*LinkService, func(), error) {
+	panic(wire.Build(LinkServiceSet))
 }
 
 func InitContext() (context.Context, func(), error) {
@@ -57,8 +58,8 @@ func InitLogger() (*zap.SugaredLogger, func(), error) {
 	return sugar, cleanup, nil
 }
 
-func InitServer(ctx context.Context, log *zap.SugaredLogger, rep *postgres.Store) (*server.Api, func(), error) {
-	server := server.New(ctx, log, rep)
+func InitHttpServer(ctx context.Context, log *zap.SugaredLogger, rep *postgres.Store) (*server.HTTPServer, func(), error) {
+	server := server.NewHTTPServer(ctx, log, rep)
 
 	cleanup := func() {
 		server.Stop()
@@ -69,9 +70,20 @@ func InitServer(ctx context.Context, log *zap.SugaredLogger, rep *postgres.Store
 	return server, cleanup, nil
 }
 
+func InitGRPCServer(ctx context.Context, log *zap.SugaredLogger, rep *postgres.Store) (*server.GRPSServer, func(), error) {
+	server := server.NewGRPCServer(ctx, log, rep)
+
+	cleanup := func() {
+		server.StopServer()
+	}
+
+	server.StartServer()
+
+	return server, cleanup, nil
+}
+
 func InitPostgresqlStore(ctx context.Context) (*postgres.Store, func(), error) {
-	store := &postgres.Store{}
-	err := store.Init(ctx)
+	store, err := postgres.NewStore(ctx)
 
 	if err != nil {
 		return nil, nil, err

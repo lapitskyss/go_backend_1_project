@@ -25,6 +25,9 @@
                 </tr>
                 </tbody>
             </table>
+            <div class="d-grid" v-if="hasMore">
+                <button class="btn btn-outline-success" @click="showMore">Show more</button>
+            </div>
             <h4 v-if="noResults">No links found.</h4>
         </div>
 
@@ -43,25 +46,54 @@
         },
         data() {
             return {
+                limit: 10,
+                hashes: [],
                 links: [],
             };
         },
         computed: {
             noResults() {
                 return this.links.length === 0
+            },
+            totalLinks() {
+                return this.hashes.length
+            },
+            hasMore() {
+                return this.totalLinks > this.links.length
             }
         },
         created() {
-            this.links = LinkService.getUserLinks()
+            this.hashes = LinkService.getUserLinksHashes();
+            this.getUserLinks()
         },
         methods: {
             getShortUrt(hash) {
                 return window.location.origin + '/' + hash
             },
+            showMore() {
+                this.getUserLinks()
+            },
             async copyShortURL(shortUrl) {
                 const { toClipboard } = useClipboard();
                 await toClipboard(shortUrl)
             },
+            async getUserLinks() {
+                if(this.totalLinks === 0) {
+                    return;
+                }
+
+                let ids = this.hashes.slice(this.links.length, this.links.length + this.limit);
+
+                let result;
+                try {
+                    result = await LinkService.getUserLinks(ids)
+                }
+                catch(e) {
+                    return
+                }
+
+                this.links.push(...result.data);
+            }
         }
     }
 </script>
