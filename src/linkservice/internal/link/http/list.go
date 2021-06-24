@@ -34,7 +34,7 @@ type linksList struct {
 	Link *[]*model.Link `json:"links"`
 }
 
-func (api *linkController) List(w http.ResponseWriter, r *http.Request) {
+func (lc *linkController) List(w http.ResponseWriter, r *http.Request) {
 	// Получаем провалидированные параметры с запроса
 	params, err := getQueryParams(r)
 	if err != nil {
@@ -45,9 +45,9 @@ func (api *linkController) List(w http.ResponseWriter, r *http.Request) {
 	// Находим список ссылок по слайсу хэшов
 	if params.HashesSlice != nil {
 		links := &[]*model.Link{}
-		links, err = api.rep.Link.GetByHashes(params.HashesSlice)
+		links, err = lc.rep.Link.GetByHashes(params.HashesSlice)
 		if err != nil {
-			api.log.Error(err)
+			lc.log.Error(err)
 			se.InternalServerError(w, r)
 			return
 		}
@@ -57,7 +57,7 @@ func (api *linkController) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Получаем слайс ссылок по заданным параметрам
-	links, err := api.rep.Link.FindBy(&postgres.FindByParameters{
+	links, err := lc.rep.Link.FindBy(&postgres.FindByParameters{
 		Page:  *params.Page,
 		Limit: *params.Limit,
 		Sort:  params.Sort,
@@ -65,15 +65,15 @@ func (api *linkController) List(w http.ResponseWriter, r *http.Request) {
 		Query: params.Query,
 	})
 	if err != nil {
-		api.log.Error(err)
+		lc.log.Error(err)
 		se.InternalServerError(w, r)
 		return
 	}
 
 	// Определяем количество ссылок в базе
-	totalLinks, err := api.rep.Link.CountByQuery(params.Query)
+	totalLinks, err := lc.rep.Link.CountByQuery(params.Query)
 	if err != nil {
-		api.log.Error(err)
+		lc.log.Error(err)
 		se.InternalServerError(w, r)
 		return
 	}

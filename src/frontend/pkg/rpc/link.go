@@ -12,8 +12,11 @@ import (
 
 var ErrLinkNotFound = errors.New("link not found")
 
-func (fe *FrontendServer) GetLink(ctx context.Context, hash string) (*pb.Link, error) {
-	link, err := pb.NewLinkServiceClient(fe.linkSvcConn).GetLink(ctx, &pb.GetLinkRequest{Hash: hash})
+func (fe *FrontendServer) GetLink(ctx context.Context, hash string, userAgent string) (*pb.Link, error) {
+	link, err := pb.NewLinkServiceClient(fe.linkSvcConn).GetLink(ctx, &pb.GetLinkRequest{
+		Hash:      hash,
+		UserAgent: userAgent,
+	})
 	if err != nil {
 		if st, ok := status.FromError(err); ok && st.Code() == codes.NotFound {
 			return nil, ErrLinkNotFound

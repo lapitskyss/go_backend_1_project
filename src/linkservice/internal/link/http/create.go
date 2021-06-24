@@ -18,7 +18,7 @@ type createLinkParams struct {
 	URL string `json:"url"`
 }
 
-func (api *linkController) Create(w http.ResponseWriter, r *http.Request) {
+func (lc *linkController) Create(w http.ResponseWriter, r *http.Request) {
 	params := &createLinkParams{}
 
 	// Декодим тело запроса
@@ -38,9 +38,9 @@ func (api *linkController) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Проверяем что короткая ссылка уже есть для URL
-	isExist, existingLink, err := api.rep.Link.GetByURL(params.URL)
+	isExist, existingLink, err := lc.rep.Link.GetByURL(params.URL)
 	if err != nil {
-		api.log.Error(err)
+		lc.log.Error(err)
 		se.InternalServerError(w, r)
 		return
 	}
@@ -52,9 +52,9 @@ func (api *linkController) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Получаем id короткой ссылки
-	nextId, err := api.rep.Link.GetNextId()
+	nextId, err := lc.rep.Link.GetNextId()
 	if err != nil {
-		api.log.Error(err)
+		lc.log.Error(err)
 		se.InternalServerError(w, r)
 		return
 	}
@@ -63,9 +63,9 @@ func (api *linkController) Create(w http.ResponseWriter, r *http.Request) {
 	link := initLink(params, nextId)
 
 	// Создаем ссылку
-	link, err = api.rep.Link.Add(link)
+	link, err = lc.rep.Link.Add(link)
 	if err != nil {
-		api.log.Error(err)
+		lc.log.Error(err)
 		se.InternalServerError(w, r)
 		return
 	}

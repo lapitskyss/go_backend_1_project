@@ -15,7 +15,8 @@ type Store struct {
 
 	common repository
 
-	Link *LinkRepository
+	Link        *LinkRepository
+	RedirectLog *RedirectLogRepository
 }
 
 type repository struct {
@@ -37,6 +38,7 @@ func NewStore(ctx context.Context) (*Store, error) {
 	c := &Store{ctx: ctx, client: client}
 	c.common.store = c
 	c.Link = (*LinkRepository)(&c.common)
+	c.RedirectLog = (*RedirectLogRepository)(&c.common)
 
 	return c, nil
 }

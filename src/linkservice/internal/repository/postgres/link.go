@@ -77,7 +77,7 @@ func (lr *LinkRepository) GetByURL(url string) (*bool, *model.Link, error) {
 }
 
 func (lr *LinkRepository) GetByHash(hash string) (*model.Link, error) {
-	q, args, err := psql.Select("url, hash, created_at").
+	q, args, err := psql.Select("id", "url, hash, created_at").
 		From("links").
 		Where(sq.Eq{"hash": hash}).
 		ToSql()
@@ -89,7 +89,7 @@ func (lr *LinkRepository) GetByHash(hash string) (*model.Link, error) {
 	var link model.Link
 
 	err = lr.store.client.QueryRow(lr.store.ctx, q, args...).
-		Scan(&link.URL, &link.Hash, &link.CreatedAt)
+		Scan(&link.ID, &link.URL, &link.Hash, &link.CreatedAt)
 
 	if err != nil {
 		if err == pgx.ErrNoRows {

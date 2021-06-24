@@ -6,6 +6,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/lapitskyss/go_backend_1_project/src/frontend/pkg/rpc"
+	"github.com/lapitskyss/go_backend_1_project/src/frontend/pkg/strings"
 )
 
 func (c *controller) Redirect(w http.ResponseWriter, r *http.Request) {
@@ -15,7 +16,8 @@ func (c *controller) Redirect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	link, err := c.fe.GetLink(c.ctx, hash)
+	ua := strings.Substr(r.UserAgent(), 0, 1000)
+	link, err := c.fe.GetLink(c.ctx, hash, ua)
 	if err != nil {
 		if err != rpc.ErrLinkNotFound {
 			c.log.Error(err)
@@ -30,8 +32,6 @@ func (c *controller) Redirect(w http.ResponseWriter, r *http.Request) {
 		c.Home(w, r)
 		return
 	}
-
-	// TODO: add redirect statistic
 
 	http.Redirect(w, r, link.Url, 301)
 	return

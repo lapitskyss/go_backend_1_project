@@ -47,6 +47,7 @@ func NewHTTPServer(ctx context.Context, log *zap.SugaredLogger, rep *postgres.St
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Post("/links", linkController.Create)
 		r.Get("/links", linkController.List)
+		r.Get("/links/{hash}/statistics", linkController.Statistics)
 	})
 
 	port := server_port.GetServerPortFromEnv("LINKSERVICE_HTTP_PORT", 3000)
