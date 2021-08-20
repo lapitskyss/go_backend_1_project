@@ -8,22 +8,21 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-	"github.com/go-chi/render"
 	"go.uber.org/zap"
 
-	linkhttp "github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/link/http"
+	linkhttp "github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/controller/http/link"
 	mw "github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/middleware"
-	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/repository/postgres"
-	"github.com/lapitskyss/go_backend_1_project/src/linkservice/pkg/server_errors"
+	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/repository/repository"
 	"github.com/lapitskyss/go_backend_1_project/src/linkservice/pkg/server_port"
 )
 
 type HTTPServer struct {
 	server http.Server
+	errors chan error
 	log    *zap.SugaredLogger
 }
 
-func NewHTTPServer(ctx context.Context, log *zap.SugaredLogger, rep *postgres.Store) *HTTPServer {
+func NewHTTPServer(ctx context.Context, log *zap.SugaredLogger, rep repository.Store) *HTTPServer {
 	r := chi.NewRouter()
 
 	corsHandler := cors.New(cors.Options{
@@ -37,10 +36,9 @@ func NewHTTPServer(ctx context.Context, log *zap.SugaredLogger, rep *postgres.St
 
 	r.Use(corsHandler.Handler)
 	r.Use(middleware.AllowContentType("application/json"))
-	r.Use(render.SetContentType(render.ContentTypeJSON))
 	r.Use(mw.Recoverer(log))
 	r.Use(middleware.Timeout(60 * time.Second))
-	r.NotFound(server_errors.NotFoundError)
+	r.NotFound(mw.NotFound)
 
 	linkController := linkhttp.New(ctx, log, rep)
 
@@ -72,6 +70,8 @@ func (srv *HTTPServer) Start() {
 		err := srv.server.ListenAndServe()
 		if err != nil && err != http.ErrServerClosed {
 			srv.log.Error("Linkservice HTTP server return error", zap.NamedError("sever_error", err))
+			srv.errors <- err
+			close(srv.errors)
 		}
 	}()
 }
@@ -80,4 +80,8 @@ func (srv *HTTPServer) Stop() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	return srv.server.Shutdown(ctx)
+}
+
+func (srv *HTTPServer) Notify() <-chan error {
+	return srv.errors
 }

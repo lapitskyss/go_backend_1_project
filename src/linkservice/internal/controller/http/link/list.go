@@ -1,4 +1,4 @@
-package http
+package link
 
 import (
 	"errors"
@@ -6,13 +6,13 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/go-chi/render"
+	"github.com/openlyinc/pointy"
+
 	"github.com/gorilla/schema"
 
 	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/model"
-	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/repository/postgres"
-	"github.com/lapitskyss/go_backend_1_project/src/linkservice/pkg/pointer"
-	se "github.com/lapitskyss/go_backend_1_project/src/linkservice/pkg/server_errors"
+	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/repository/repository"
+	"github.com/lapitskyss/go_backend_1_project/src/linkservice/pkg/render"
 )
 
 type listParameters struct {
@@ -31,33 +31,33 @@ type linksList struct {
 	Pages uint64 `json:"pages"`
 	Total uint64 `json:"total"`
 
-	Link *[]*model.Link `json:"links"`
+	Links []*model.Link `json:"links"`
 }
 
 func (lc *linkController) List(w http.ResponseWriter, r *http.Request) {
 	// Получаем провалидированные параметры с запроса
 	params, err := getQueryParams(r)
 	if err != nil {
-		se.BadRequestError(w, r, err)
+		render.BadRequestError(w, err)
 		return
 	}
 
 	// Находим список ссылок по слайсу хэшов
 	if params.HashesSlice != nil {
-		links := &[]*model.Link{}
-		links, err = lc.rep.Link.GetByHashes(params.HashesSlice)
+		links := []*model.Link{}
+		links, err = lc.rep.Link().GetByHashes(params.HashesSlice)
 		if err != nil {
 			lc.log.Error(err)
-			se.InternalServerError(w, r)
+			render.InternalServerError(w)
 			return
 		}
 
-		render.JSON(w, r, links)
+		render.Success(w, links)
 		return
 	}
 
 	// Получаем слайс ссылок по заданным параметрам
-	links, err := lc.rep.Link.FindBy(&postgres.FindByParameters{
+	links, err := lc.rep.Link().FindBy(&repository.FindByParameters{
 		Page:  *params.Page,
 		Limit: *params.Limit,
 		Sort:  params.Sort,
@@ -66,24 +66,24 @@ func (lc *linkController) List(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		lc.log.Error(err)
-		se.InternalServerError(w, r)
+		render.InternalServerError(w)
 		return
 	}
 
 	// Определяем количество ссылок в базе
-	totalLinks, err := lc.rep.Link.CountByQuery(params.Query)
+	totalLinks, err := lc.rep.Link().CountByQuery(params.Query)
 	if err != nil {
 		lc.log.Error(err)
-		se.InternalServerError(w, r)
+		render.InternalServerError(w)
 		return
 	}
 
-	render.JSON(w, r, linksList{
+	render.Success(w, linksList{
 		Page:  *params.Page,
 		Limit: *params.Limit,
 		Pages: getPages(*totalLinks, *params.Limit),
 		Total: *totalLinks,
-		Link:  links,
+		Links: links,
 	})
 }
 
@@ -96,10 +96,10 @@ func getQueryParams(r *http.Request) (*listParameters, error) {
 	}
 
 	if params.Page == nil {
-		params.Page = pointer.Uint64(1)
+		params.Page = pointy.Uint64(1)
 	}
 	if params.Limit == nil {
-		params.Limit = pointer.Uint64(10)
+		params.Limit = pointy.Uint64(10)
 	}
 
 	err = validateQueryParams(&params)

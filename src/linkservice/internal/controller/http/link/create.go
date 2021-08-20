@@ -1,17 +1,16 @@
-package http
+package link
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
 	"net/url"
 	"time"
 
-	"github.com/go-chi/render"
 	"github.com/speps/go-hashids/v2"
 
 	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/model"
-	se "github.com/lapitskyss/go_backend_1_project/src/linkservice/pkg/server_errors"
+	"github.com/lapitskyss/go_backend_1_project/src/linkservice/pkg/render"
+	"github.com/lapitskyss/go_backend_1_project/src/linkservice/pkg/util"
 )
 
 type createLinkParams struct {
@@ -19,58 +18,57 @@ type createLinkParams struct {
 }
 
 func (lc *linkController) Create(w http.ResponseWriter, r *http.Request) {
-	params := &createLinkParams{}
-
 	// Декодим тело запроса
-	decoder := json.NewDecoder(r.Body)
-	decoder.DisallowUnknownFields()
-	err := decoder.Decode(params)
+	params := &createLinkParams{}
+	err := util.DecodeJSON(r, params)
 	if err != nil {
-		se.BadRequestError(w, r, err)
+		render.BadRequestError(w, err)
 		return
 	}
 
 	// Валидируем пришедшии параметры
 	err = validateParams(params)
 	if err != nil {
-		se.BadRequestError(w, r, err)
+		render.BadRequestError(w, err)
 		return
 	}
 
 	// Проверяем что короткая ссылка уже есть для URL
-	isExist, existingLink, err := lc.rep.Link.GetByURL(params.URL)
+	existingLink, err := lc.rep.Link().GetByURL(params.URL)
 	if err != nil {
 		lc.log.Error(err)
-		se.InternalServerError(w, r)
+		render.InternalServerError(w)
 		return
 	}
 
 	// Если короткая ссылка есть, то отдаем ее
-	if *isExist {
-		render.JSON(w, r, existingLink)
+	if existingLink != nil {
+		render.Success(w, existingLink)
 		return
 	}
 
 	// Получаем id короткой ссылки
-	nextId, err := lc.rep.Link.GetNextId()
+	nextId, err := lc.rep.Link().GetNextId()
 	if err != nil {
 		lc.log.Error(err)
-		se.InternalServerError(w, r)
+		render.InternalServerError(w)
 		return
 	}
-
-	// Добавляем хэш и дату создания короткой ссылки
-	link := initLink(params, nextId)
 
 	// Создаем ссылку
-	link, err = lc.rep.Link.Add(link)
+	link, err := lc.rep.Link().Add(&model.Link{
+		ID:        *nextId,
+		URL:       params.URL,
+		Hash:      getHash(nextId),
+		CreatedAt: time.Now(),
+	})
 	if err != nil {
 		lc.log.Error(err)
-		se.InternalServerError(w, r)
+		render.InternalServerError(w)
 		return
 	}
 
-	render.JSON(w, r, link)
+	render.Success(w, link)
 }
 
 func validateParams(params *createLinkParams) error {
@@ -85,15 +83,6 @@ func validateParams(params *createLinkParams) error {
 	}
 
 	return nil
-}
-
-func initLink(params *createLinkParams, id *uint64) *model.Link {
-	return &model.Link{
-		ID:        *id,
-		URL:       params.URL,
-		Hash:      getHash(id),
-		CreatedAt: time.Now(),
-	}
 }
 
 func getHash(id *uint64) string {

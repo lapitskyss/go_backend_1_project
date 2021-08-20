@@ -1,12 +1,11 @@
-package http
+package link
 
 import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/render"
 
-	se "github.com/lapitskyss/go_backend_1_project/src/linkservice/pkg/server_errors"
+	"github.com/lapitskyss/go_backend_1_project/src/linkservice/pkg/render"
 )
 
 type statisticsInfo struct {
@@ -16,28 +15,28 @@ type statisticsInfo struct {
 func (lc *linkController) Statistics(w http.ResponseWriter, r *http.Request) {
 	var hash = chi.URLParam(r, "hash")
 	if hash == "" {
-		se.NotFoundError(w, r)
+		render.NotFoundError(w)
 		return
 	}
 
 	// Находим ссылку по хэш параметру
-	link, err := lc.rep.Link.GetByHash(hash)
+	link, err := lc.rep.Link().GetByHash(hash)
 	if err != nil {
 		lc.log.Error(err)
-		se.NotFoundError(w, r)
+		render.InternalServerError(w)
 		return
 	}
 	if link == nil {
-		se.NotFoundError(w, r)
+		render.NotFoundError(w)
 		return
 	}
 
-	total, err := lc.rep.RedirectLog.CountRedirects(link.ID)
+	total, err := lc.rep.RedirectLog().CountRedirects(link.ID)
 	if err != nil {
 		lc.log.Error(err)
-		se.InternalServerError(w, r)
+		render.InternalServerError(w)
 		return
 	}
 
-	render.JSON(w, r, statisticsInfo{Redirects: *total})
+	render.Success(w, statisticsInfo{Redirects: *total})
 }

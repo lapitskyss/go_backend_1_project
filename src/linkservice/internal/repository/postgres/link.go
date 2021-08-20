@@ -7,7 +7,7 @@ import (
 	"github.com/jackc/pgx/v4"
 
 	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/model"
-	"github.com/lapitskyss/go_backend_1_project/src/linkservice/pkg/pointer"
+	r "github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/repository/repository"
 )
 
 var (
@@ -26,12 +26,7 @@ func (lr *LinkRepository) Add(link *model.Link) (*model.Link, error) {
 		return nil, err
 	}
 
-	err = lr.store.client.QueryRow(lr.store.ctx, sql, args...).
-		Scan(&link.URL, &link.Hash, &link.CreatedAt)
-
-	if err == pgx.ErrNoRows {
-		return link, nil
-	}
+	_, err = lr.store.client.Exec(lr.store.ctx, sql, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -51,14 +46,14 @@ func (lr *LinkRepository) GetNextId() (*uint64, error) {
 	return &id, nil
 }
 
-func (lr *LinkRepository) GetByURL(url string) (*bool, *model.Link, error) {
+func (lr *LinkRepository) GetByURL(url string) (*model.Link, error) {
 	q, args, err := psql.Select("url, hash, created_at").
 		From("links").
 		Where(sq.Eq{"url": url}).
 		ToSql()
 
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	var link model.Link
@@ -66,14 +61,15 @@ func (lr *LinkRepository) GetByURL(url string) (*bool, *model.Link, error) {
 	err = lr.store.client.QueryRow(lr.store.ctx, q, args...).
 		Scan(&link.URL, &link.Hash, &link.CreatedAt)
 
-	if err == pgx.ErrNoRows {
-		return pointer.Bool(false), nil, nil
-	}
 	if err != nil {
-		return nil, nil, err
+		if err == pgx.ErrNoRows {
+			return nil, nil
+		}
+
+		return nil, err
 	}
 
-	return pointer.Bool(true), &link, nil
+	return &link, nil
 }
 
 func (lr *LinkRepository) GetByHash(hash string) (*model.Link, error) {
@@ -102,7 +98,7 @@ func (lr *LinkRepository) GetByHash(hash string) (*model.Link, error) {
 	return &link, nil
 }
 
-func (lr *LinkRepository) GetByHashes(hashes *[]string) (*[]*model.Link, error) {
+func (lr *LinkRepository) GetByHashes(hashes *[]string) ([]*model.Link, error) {
 	q, args, err := psql.Select("url, hash, created_at").
 		From("links").
 		Where(sq.Eq{"hash": *hashes}).
@@ -132,25 +128,23 @@ func (lr *LinkRepository) GetByHashes(hashes *[]string) (*[]*model.Link, error) 
 
 	resultedLinks := []*model.Link{} // nolint errcheck
 	for _, hash := range *hashes {
+		isFound := false
 		for _, link := range links {
 			if link.Hash == hash {
 				resultedLinks = append(resultedLinks, link)
+				isFound = true
+				break
 			}
+		}
+		if isFound == false {
+			resultedLinks = append(resultedLinks, nil)
 		}
 	}
 
-	return &resultedLinks, nil
+	return resultedLinks, nil
 }
 
-type FindByParameters struct {
-	Page  uint64
-	Limit uint64
-	Sort  *string // url, hash, created_at
-	Order *string // asc, desc
-	Query *string
-}
-
-func (lr *LinkRepository) FindBy(params *FindByParameters) (*[]*model.Link, error) {
+func (lr *LinkRepository) FindBy(params *r.FindByParameters) ([]*model.Link, error) {
 	sb := psql.Select("url, hash, created_at").
 		From("links").
 		Limit(params.Limit)
@@ -195,7 +189,7 @@ func (lr *LinkRepository) FindBy(params *FindByParameters) (*[]*model.Link, erro
 		links = append(links, &link)
 	}
 
-	return &links, nil
+	return links, nil
 }
 
 func (lr *LinkRepository) CountByQuery(query *string) (*uint64, error) {

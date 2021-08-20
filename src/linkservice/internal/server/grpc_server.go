@@ -8,7 +8,7 @@ import (
 	"google.golang.org/grpc"
 
 	pb "github.com/lapitskyss/go_backend_1_project/src/linkservice/genproto"
-	linkgrpc "github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/link/grpc"
+	linkgrpc "github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/controller/grpc/link"
 	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/repository/postgres"
 	"github.com/lapitskyss/go_backend_1_project/src/linkservice/pkg/server_port"
 )

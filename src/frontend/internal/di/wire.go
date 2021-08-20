@@ -1,5 +1,6 @@
 //go:generate wire
-//+build wireinject
+//go:build wireinject
+// +build wireinject
 
 package di
 
@@ -17,6 +18,7 @@ import (
 
 type FrontendService struct {
 	Log *zap.SugaredLogger
+	Srv *server.Frontend
 }
 
 var FrontendSet = wire.NewSet(
@@ -31,6 +33,7 @@ var FrontendSet = wire.NewSet(
 func InitFrontendService(log *zap.SugaredLogger, f *server.Frontend) (*FrontendService, error) {
 	return &FrontendService{
 		Log: log,
+		Srv: f,
 	}, nil
 }
 

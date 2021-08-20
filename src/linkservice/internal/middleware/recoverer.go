@@ -11,7 +11,7 @@ func Recoverer(log *zap.SugaredLogger) func(http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			defer func() {
 				if rvr := recover(); rvr != nil && rvr != http.ErrAbortHandler {
-					log.Error(rvr.(string))
+					log.Error(rvr)
 
 					w.Header().Add("Content-type", "application/json")
 					w.WriteHeader(http.StatusInternalServerError)

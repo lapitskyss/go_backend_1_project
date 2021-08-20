@@ -1,4 +1,4 @@
-package grpc
+package link
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 )
 
 func (l *link) GetLink(ctx context.Context, req *pb.GetLinkRequest) (*pb.Link, error) {
-	link, err := l.rep.Link.GetByHash(req.Hash)
+	link, err := l.rep.Link().GetByHash(req.Hash)
 	if err != nil {
 		l.log.Error(err)
 		return nil, status.New(codes.Internal, err.Error()).Err()
@@ -21,7 +21,7 @@ func (l *link) GetLink(ctx context.Context, req *pb.GetLinkRequest) (*pb.Link, e
 		return nil, status.New(codes.NotFound, "link not found").Err()
 	}
 
-	err = l.rep.RedirectLog.Add(&model.RedirectLog{
+	err = l.rep.RedirectLog().Add(&model.RedirectLog{
 		LinkId:    link.ID,
 		UserAgent: req.UserAgent,
 		CreatedAt: time.Now(),

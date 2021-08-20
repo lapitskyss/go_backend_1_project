@@ -20,9 +20,14 @@ func main() {
 		}
 	}()
 
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)
-	<-sigs
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
+	select {
+	case x := <-interrupt:
+		service.Log.Infow("Received a signal.", "signal", x.String())
+	case err := <-service.Srv.Notify():
+		service.Log.Errorw("Received an error from the frontend http server.", "err", err)
+	}
 
 	cleanup()
 }

@@ -17,6 +17,7 @@ import (
 
 type Frontend struct {
 	server http.Server
+	errors chan error
 	log    *zap.SugaredLogger
 }
 
@@ -63,4 +64,8 @@ func (f *Frontend) Stop() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	return f.server.Shutdown(ctx)
+}
+
+func (f *Frontend) Notify() <-chan error {
+	return f.errors
 }

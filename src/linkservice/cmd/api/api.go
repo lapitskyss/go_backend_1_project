@@ -16,13 +16,18 @@ func main() {
 
 	defer func() {
 		if r := recover(); r != nil {
-			service.Log.Error(r.(string))
+			service.Log.Error(r)
 		}
 	}()
 
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)
-	<-sigs
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
+	select {
+	case x := <-interrupt:
+		service.Log.Infow("Received a signal.", "signal", x.String())
+	case err := <-service.HTTPServer.Notify():
+		service.Log.Errorw("Received an error from the linkservice http server.", "err", err)
+	}
 
 	cleanup()
 }

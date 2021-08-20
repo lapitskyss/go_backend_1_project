@@ -1,4 +1,4 @@
-package grpc
+package link
 
 import (
 	"context"
@@ -8,16 +8,16 @@ import (
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/status"
 
-	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/repository/postgres"
+	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/repository/repository"
 )
 
 type link struct {
 	ctx context.Context
 	log *zap.SugaredLogger
-	rep *postgres.Store
+	rep repository.Store
 }
 
-func New(ctx context.Context, log *zap.SugaredLogger, rep *postgres.Store) *link {
+func New(ctx context.Context, log *zap.SugaredLogger, rep repository.Store) *link {
 	return &link{ctx, log, rep}
 }
 

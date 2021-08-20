@@ -6,7 +6,8 @@ import (
 	"os"
 
 	"github.com/jackc/pgx/v4/pgxpool"
-	_ "github.com/lib/pq"
+
+	r "github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/repository/repository"
 )
 
 type Store struct {
@@ -15,15 +16,15 @@ type Store struct {
 
 	common repository
 
-	Link        *LinkRepository
-	RedirectLog *RedirectLogRepository
+	link        r.LinkInterface
+	redirectLog r.RedirectLogInterface
 }
 
 type repository struct {
 	store *Store
 }
 
-func NewStore(ctx context.Context) (*Store, error) {
+func (store *Store) Connect(ctx context.Context) error {
 	config := fmt.Sprintf("postgres://%s:%s@postgres:%s/%s?sslmode=disable",
 		os.Getenv("POSTGRES_USER"),
 		os.Getenv("POSTGRES_PASSWORD"),
@@ -32,21 +33,31 @@ func NewStore(ctx context.Context) (*Store, error) {
 	)
 	client, err := pgxpool.Connect(ctx, config)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	c := &Store{ctx: ctx, client: client}
-	c.common.store = c
-	c.Link = (*LinkRepository)(&c.common)
-	c.RedirectLog = (*RedirectLogRepository)(&c.common)
+	store.ctx = ctx
+	store.client = client
 
-	return c, nil
+	store.common.store = store
+	store.link = (*LinkRepository)(&store.common)
+	store.redirectLog = (*RedirectLogRepository)(&store.common)
+
+	return nil
 }
 
-func (store *Store) GetConn() interface{} {
+func (store *Store) GetConnection() interface{} {
 	return store.client
 }
 
-func (store *Store) Close() {
+func (store *Store) CloseConnection() {
 	store.client.Close()
+}
+
+func (store *Store) Link() r.LinkInterface {
+	return store.link
+}
+
+func (store *Store) RedirectLog() r.RedirectLogInterface {
+	return store.redirectLog
 }

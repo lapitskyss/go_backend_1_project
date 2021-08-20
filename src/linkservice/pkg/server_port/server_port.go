@@ -15,7 +15,7 @@ func GetServerPortFromEnv(envVariable string, defaultPort int) string {
 			return ":" + strconv.Itoa(defaultPort)
 		}
 
-		if 1 < portNumber || portNumber > 65535 {
+		if 1 > portNumber || portNumber > 65535 {
 			return ":" + strconv.Itoa(defaultPort)
 		}
 
