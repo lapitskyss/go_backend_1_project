@@ -1,9 +1,13 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func Recoverer(log *zap.SugaredLogger) func(http.Handler) http.Handler {
@@ -23,5 +27,23 @@ func Recoverer(log *zap.SugaredLogger) func(http.Handler) http.Handler {
 		}
 
 		return http.HandlerFunc(fn)
+	}
+}
+
+func UnaryServerInterceptor(log *zap.SugaredLogger) grpc.UnaryServerInterceptor {
+	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (_ interface{}, err error) {
+		panicked := true
+
+		defer func() {
+			if r := recover(); r != nil || panicked {
+				log.Error(r)
+
+				err = status.Error(codes.Internal, "internal error")
+			}
+		}()
+
+		resp, err := handler(ctx, req)
+		panicked = false
+		return resp, err
 	}
 }
