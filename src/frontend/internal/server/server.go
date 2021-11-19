@@ -6,39 +6,36 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	"go.uber.org/zap"
 
+	"github.com/lapitskyss/go_backend_1_project/src/frontend/files"
 	"github.com/lapitskyss/go_backend_1_project/src/frontend/internal/controller"
 	mw "github.com/lapitskyss/go_backend_1_project/src/frontend/internal/middleware"
 	"github.com/lapitskyss/go_backend_1_project/src/frontend/pkg/rpc"
-	"github.com/lapitskyss/go_backend_1_project/src/frontend/pkg/server_port"
 )
 
 type Frontend struct {
 	server http.Server
 	errors chan error
-	log    *zap.SugaredLogger
+	log    *zap.Logger
 }
 
-func NewFrontendServer(ctx context.Context, log *zap.SugaredLogger, fe *rpc.FrontendServer) *Frontend {
+func NewFrontendServer(ctx context.Context, log *zap.Logger, fe *rpc.FrontendServer, tmp *files.Templates) *Frontend {
 	r := chi.NewRouter()
 
 	r.Use(mw.Recoverer(log))
-	r.Use(middleware.RealIP)
-	r.Use(middleware.Timeout(60 * time.Second))
 
-	cnt := controller.NewController(ctx, log, fe)
+	cnt := controller.NewController(ctx, log, fe, tmp)
 
-	FileServerForStatic(r)
+	files.FileServerForStatic(r)
 	r.Get("/{hash}", cnt.Redirect)
 	r.Get("/*", cnt.Home)
 
-	port := server_port.GetServerPortFromEnv("FRONTEND_HTTP_PORT", 3001)
+	// TODO get server port from env
 
 	return &Frontend{
 		server: http.Server{
-			Addr:    port,
+			Addr:    ":3001",
 			Handler: r,
 
 			ReadTimeout:       1 * time.Second,
@@ -55,7 +52,8 @@ func (f *Frontend) Start() {
 	go func() {
 		err := f.server.ListenAndServe()
 		if err != nil && err != http.ErrServerClosed {
-			f.log.Error("Frontend server return error", zap.NamedError("sever_error", err))
+			f.log.Error("Frontend server return error", zap.Error(err))
+			f.errors <- err
 		}
 	}()
 }

@@ -5,6 +5,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	"go.uber.org/zap"
+
 	"github.com/lapitskyss/go_backend_1_project/src/frontend/internal/di"
 )
 
@@ -22,11 +24,12 @@ func main() {
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
+
 	select {
 	case x := <-interrupt:
-		service.Log.Infow("Received a signal.", "signal", x.String())
-	case err := <-service.Srv.Notify():
-		service.Log.Errorw("Received an error from the frontend http server.", "err", err)
+		service.Log.Info("Frontend received a signal.", zap.String("signal", x.String()))
+	case e := <-service.Srv.Notify():
+		service.Log.Error("Received an error from the frontend http server.", zap.Error(e))
 	}
 
 	cleanup()

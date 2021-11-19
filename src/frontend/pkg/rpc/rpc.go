@@ -16,7 +16,7 @@ type FrontendServer struct {
 
 func NewGRPCClient(ctx context.Context) (*FrontendServer, error) {
 	var err error
-	svc := &FrontendServer{}
+	var svc = &FrontendServer{}
 
 	err = mustMapEnv(&svc.linkSvcAddr, "LINKSERVICE_SERVICE_ADDR")
 	if err != nil {

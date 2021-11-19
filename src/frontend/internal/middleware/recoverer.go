@@ -6,14 +6,14 @@ import (
 	"go.uber.org/zap"
 )
 
-func Recoverer(log *zap.SugaredLogger) func(http.Handler) http.Handler {
+func Recoverer(log *zap.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			defer func() {
 				if rvr := recover(); rvr != nil && rvr != http.ErrAbortHandler {
-					log.Error(rvr.(string))
+					log.Error("panic", zap.Any("details", r))
 
-					http.Error(w, "Unexpected error occurred. Please try again later", http.StatusBadRequest)
+					http.Error(w, "Unexpected error occurred. Please try again later.", http.StatusInternalServerError)
 				}
 			}()
 

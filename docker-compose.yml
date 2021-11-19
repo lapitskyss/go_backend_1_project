@@ -1,21 +1,32 @@
 version: '2.4'
 
 services:
-    linkservice:
+    linkservice_rest:
         build:
             context: ./src/linkservice/
-            dockerfile: Dockerfile
+            dockerfile: ../../ops/dockerfile/linkservice/rest/dev.Dockerfile
             target: develop
-        container_name: ${APP_NAME}_linkservice
+        container_name: ${APP_NAME}_linkservice_rest
         ports:
-            - "${LINKSERVICE_HTTP_PORT}:${LINKSERVICE_HTTP_PORT}"
+            - "${LINKSERVICE_REST_SERVER_PORT}:${LINKSERVICE_REST_SERVER_PORT}"
         environment:
-            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-            POSTGRES_DB: ${POSTGRES_DB}
-            POSTGRES_USER: ${POSTGRES_USER}
-            POSTGRES_PORT: ${POSTGRES_PORT}
-            LINKSERVICE_HTTP_PORT: ${LINKSERVICE_HTTP_PORT}
-            LINKSERVICE_GRPC_PORT: ${LINKSERVICE_GRPC_PORT}
+            DATABASE_URL: ${LINKSERVICE_DATABASE_URL}
+            REST_SERVER_PORT: ${LINKSERVICE_REST_SERVER_PORT}
+        depends_on:
+            - postgres
+            - flyway
+        volumes:
+            - ./src/linkservice:/app
+
+    linkservice_grpc:
+        build:
+            context: ./src/linkservice/
+            dockerfile: ../../ops/dockerfile/linkservice/grpc/dev.Dockerfile
+            target: develop
+        container_name: ${APP_NAME}_linkservice_grpc
+        environment:
+            DATABASE_URL: ${LINKSERVICE_DATABASE_URL}
+            GRPC_SERVER_PORT: ${LINKSERVICE_GRPC_SERVER_PORT}
         depends_on:
             - postgres
             - flyway
@@ -25,17 +36,12 @@ services:
     frontend:
         build:
             context: ./src/frontend/
-            dockerfile: Dockerfile
+            dockerfile: ../../ops/dockerfile/frontend/dev.Dockerfile
             target: develop
         container_name: ${APP_NAME}_frontend
         ports:
             - "${FRONTEND_HTTP_PORT}:${FRONTEND_HTTP_PORT}"
         environment:
-            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-            POSTGRES_DB: ${POSTGRES_DB}
-            POSTGRES_USER: ${POSTGRES_USER}
-            POSTGRES_PORT: ${POSTGRES_PORT}
-            FRONTEND_HTTP_PORT: ${FRONTEND_HTTP_PORT}
             LINKSERVICE_SERVICE_ADDR: ${LINKSERVICE_SERVICE_ADDR}
         volumes:
             - ./src/frontend:/app

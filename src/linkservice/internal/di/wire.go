@@ -6,39 +6,69 @@ package di
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/google/wire"
 	"go.uber.org/zap"
 
-	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/repository/postgres"
-	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/server"
+	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/config"
+	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/server/grpcs"
+	grpch "github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/server/grpcs/handler"
+	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/server/rests"
+	resth "github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/server/rests/handler"
+	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/services/linksrv"
+	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/services/redirectsrv"
+	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/store/pg"
 )
 
-type LinkService struct {
-	Log        *zap.SugaredLogger
-	HTTPServer *server.HTTPServer
-	GRPSServer *server.GRPSServer
+type REST struct {
+	Log        *zap.Logger
+	RESTServer *rests.RESTServer
 }
 
-var LinkServiceSet = wire.NewSet(
-	InitLinkService,
+type GRPC struct {
+	Log        *zap.Logger
+	GRPCServer *grpcs.GRPCServer
+}
+
+var RestSet = wire.NewSet(
+	InitRESTService,
 	InitContext,
+	InitConfig,
 	InitLogger,
-	InitHttpServer,
-	InitGRPCServer,
-	InitPostgresqlStore,
+	InitPgStore,
+	InitRESTServer,
 )
 
-func InitLinkService(log *zap.SugaredLogger, hs *server.HTTPServer, gs *server.GRPSServer) (*LinkService, error) {
-	return &LinkService{
+var GRPCSet = wire.NewSet(
+	InitGRPCService,
+	InitContext,
+	InitConfig,
+	InitLogger,
+	InitPgStore,
+	InitGRPCServer,
+)
+
+func InitializeREST() (*REST, func(), error) {
+	panic(wire.Build(RestSet))
+}
+
+func InitializeGRPC() (*GRPC, func(), error) {
+	panic(wire.Build(GRPCSet))
+}
+
+func InitRESTService(log *zap.Logger, restServer *rests.RESTServer) (*REST, error) {
+	return &REST{
 		Log:        log,
-		HTTPServer: hs,
-		GRPSServer: gs,
+		RESTServer: restServer,
 	}, nil
 }
 
-func InitializeLinkService() (*LinkService, func(), error) {
-	panic(wire.Build(LinkServiceSet))
+func InitGRPCService(log *zap.Logger, grpcServer *grpcs.GRPCServer) (*GRPC, error) {
+	return &GRPC{
+		Log:        log,
+		GRPCServer: grpcServer,
+	}, nil
 }
 
 func InitContext() (context.Context, func(), error) {
@@ -51,53 +81,66 @@ func InitContext() (context.Context, func(), error) {
 	return ctx, cb, nil
 }
 
-func InitLogger() (*zap.SugaredLogger, func(), error) {
+func InitConfig() (*config.Config, error) {
+	cfg := &config.Config{}
+	if err := env.Parse(cfg); err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
+}
+
+func InitLogger() (*zap.Logger, func(), error) {
 	logger, _ := zap.NewProduction()
 
 	cleanup := func() {
-		logger.Sync()
+		_ = logger.Sync()
 	}
 
-	sugar := logger.Sugar()
-
-	return sugar, cleanup, nil
+	return logger, cleanup, nil
 }
 
-func InitHttpServer(ctx context.Context, log *zap.SugaredLogger, rep *postgres.Store) (*server.HTTPServer, func(), error) {
-	server := server.NewHTTPServer(ctx, log, rep)
-
-	cleanup := func() {
-		server.Stop()
-	}
-
-	server.Start()
-
-	return server, cleanup, nil
-}
-
-func InitGRPCServer(ctx context.Context, log *zap.SugaredLogger, rep *postgres.Store) (*server.GRPSServer, func(), error) {
-	server := server.NewGRPCServer(ctx, log, rep)
-
-	cleanup := func() {
-		server.StopServer()
-	}
-
-	server.StartServer()
-
-	return server, cleanup, nil
-}
-
-func InitPostgresqlStore(ctx context.Context) (*postgres.Store, func(), error) {
-	var store postgres.Store
-
-	err := store.Connect(ctx)
+func InitPgStore(ctx context.Context, cfg *config.Config, log *zap.Logger) (*pg.Store, func(), error) {
+	store, err := pg.Connect(ctx, cfg.DatabaseURL, log)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	cleanup := func() {
-		store.CloseConnection()
+		store.Close()
 	}
 
-	return &store, cleanup, nil
+	return store, cleanup, nil
+}
+
+func InitRESTServer(log *zap.Logger, store *pg.Store, cfg *config.Config) (*rests.RESTServer, func(), error) {
+	linkStore := pg.NewLinkStore(store)
+	linkService := linksrv.NewLinkService(log, linkStore)
+	linkHandler := resth.NewLinkHandler(log, linkService)
+
+	srv := rests.NewRESTServer(strconv.Itoa(cfg.RESTPort), log, linkHandler)
+
+	cleanup := func() {
+		_ = srv.Stop()
+	}
+
+	srv.Start()
+
+	return srv, cleanup, nil
+}
+
+func InitGRPCServer(log *zap.Logger, store *pg.Store, cfg *config.Config) (*grpcs.GRPCServer, func(), error) {
+	redirectStore := pg.NewRedirectStore(store)
+	redirectService := redirectsrv.NewRedirectService(log, redirectStore)
+	redirectHandler := grpch.NewRedirectHandler(log, redirectService)
+
+	srv := grpcs.NewGRPCServer(log, redirectHandler)
+
+	cleanup := func() {
+		srv.Stop()
+	}
+
+	srv.Start(strconv.Itoa(cfg.GRPCPort))
+
+	return srv, cleanup, nil
 }

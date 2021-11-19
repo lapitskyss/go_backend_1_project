@@ -1,11 +1,11 @@
 ################ Modules ################
-FROM golang:1.16 as modules
+FROM golang:1.17 as modules
 
 ADD go.mod go.sum /m/
 RUN cd /m && go mod download
 
 ################ Develop ################
-FROM golang:1.16-buster as develop
+FROM golang:1.17-buster as develop
 
 COPY --from=modules /go/pkg /go/pkg
 

@@ -6,18 +6,17 @@ package di
 
 import (
 	"context"
-	"os"
+	"github.com/lapitskyss/go_backend_1_project/src/frontend/files"
 
 	"github.com/google/wire"
 	"go.uber.org/zap"
 
 	"github.com/lapitskyss/go_backend_1_project/src/frontend/internal/server"
-	"github.com/lapitskyss/go_backend_1_project/src/frontend/pkg/api"
 	"github.com/lapitskyss/go_backend_1_project/src/frontend/pkg/rpc"
 )
 
 type FrontendService struct {
-	Log *zap.SugaredLogger
+	Log *zap.Logger
 	Srv *server.Frontend
 }
 
@@ -25,12 +24,12 @@ var FrontendSet = wire.NewSet(
 	InitFrontendService,
 	InitContext,
 	InitLogger,
-	InitClient,
-	NewGRPCClient,
+	InitTemplates,
+	InitGRPCClient,
 	InitServer,
 )
 
-func InitFrontendService(log *zap.SugaredLogger, f *server.Frontend) (*FrontendService, error) {
+func InitFrontendService(log *zap.Logger, f *server.Frontend) (*FrontendService, error) {
 	return &FrontendService{
 		Log: log,
 		Srv: f,
@@ -51,28 +50,21 @@ func InitContext() (context.Context, func(), error) {
 	return ctx, cb, nil
 }
 
-func InitLogger() (*zap.SugaredLogger, func(), error) {
+func InitLogger() (*zap.Logger, func(), error) {
 	logger, _ := zap.NewProduction()
 
 	cleanup := func() {
-		logger.Sync()
+		_ = logger.Sync()
 	}
 
-	sugar := logger.Sugar()
-
-	return sugar, cleanup, nil
+	return logger, cleanup, nil
 }
 
-func InitClient() (*api.Client, error) {
-	client, err := api.NewClient(os.Getenv("LINKSERVICE_BASE_URL"), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return client, nil
+func InitTemplates() (*files.Templates, error) {
+	return files.InitTemplates()
 }
 
-func NewGRPCClient(ctx context.Context) (*rpc.FrontendServer, error) {
+func InitGRPCClient(ctx context.Context) (*rpc.FrontendServer, error) {
 	client, err := rpc.NewGRPCClient(ctx)
 	if err != nil {
 		return nil, err
@@ -81,14 +73,14 @@ func NewGRPCClient(ctx context.Context) (*rpc.FrontendServer, error) {
 	return client, nil
 }
 
-func InitServer(ctx context.Context, log *zap.SugaredLogger, fe *rpc.FrontendServer) (*server.Frontend, func(), error) {
-	server := server.NewFrontendServer(ctx, log, fe)
+func InitServer(ctx context.Context, log *zap.Logger, fe *rpc.FrontendServer, tmp *files.Templates) (*server.Frontend, func(), error) {
+	srv := server.NewFrontendServer(ctx, log, fe, tmp)
 
 	cleanup := func() {
-		server.Stop()
+		_ = srv.Stop()
 	}
 
-	server.Start()
+	srv.Start()
 
-	return server, cleanup, nil
+	return srv, cleanup, nil
 }

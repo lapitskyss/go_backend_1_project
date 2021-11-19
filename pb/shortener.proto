@@ -1,6 +1,7 @@
 syntax = "proto3";
 
 package shortener;
+option go_package = "/proto";
 
 // -----------------Link service-----------------
 
@@ -10,10 +11,8 @@ service LinkService {
 
 message GetLinkRequest {
     string hash = 1;
-    string user_agent = 2;
 }
 
 message Link {
     string url = 1;
-    string hash = 2;
 }

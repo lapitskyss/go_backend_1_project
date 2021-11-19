@@ -1,4 +1,4 @@
 PATH=$PATH:$GOPATH/bin
 protodir=../../pb
 
-protoc --go_out=plugins=grpc:genproto -I $protodir $protodir/shortener.proto
+protoc $protodir/shortener.proto --go_out=. --go-grpc_out=. --proto_path=$protodir

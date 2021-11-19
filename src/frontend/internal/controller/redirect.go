@@ -4,9 +4,9 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"go.uber.org/zap"
 
 	"github.com/lapitskyss/go_backend_1_project/src/frontend/pkg/rpc"
-	"github.com/lapitskyss/go_backend_1_project/src/frontend/pkg/strings"
 )
 
 func (c *controller) Redirect(w http.ResponseWriter, r *http.Request) {
@@ -16,12 +16,13 @@ func (c *controller) Redirect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ua := strings.Substr(r.UserAgent(), 0, 1000)
-	link, err := c.fe.GetLink(c.ctx, hash, ua)
+	link, err := c.fe.GetLink(c.ctx, hash)
 	if err != nil {
 		if err != rpc.ErrLinkNotFound {
-			c.log.Error(err)
+			c.log.Error("Frontend link not found", zap.Error(err))
 		}
+
+		// TODO show home page with error
 
 		c.Home(w, r)
 		return
@@ -33,6 +34,6 @@ func (c *controller) Redirect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, link.Url, 301)
+	http.Redirect(w, r, link.GetUrl(), 301)
 	return
 }
