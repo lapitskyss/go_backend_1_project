@@ -11,14 +11,14 @@ import (
 )
 
 func main() {
-	service, cleanup, err := di.InitializeFrontendService()
+	f, cleanup, err := di.InitializeFrontend()
 	if err != nil {
 		panic(err)
 	}
 
 	defer func() {
 		if r := recover(); r != nil {
-			service.Log.Error(r.(string))
+			f.Log.Error("panic", zap.Any("details", r))
 		}
 	}()
 
@@ -27,9 +27,9 @@ func main() {
 
 	select {
 	case x := <-interrupt:
-		service.Log.Info("Frontend received a signal.", zap.String("signal", x.String()))
-	case e := <-service.Srv.Notify():
-		service.Log.Error("Received an error from the frontend http server.", zap.Error(e))
+		f.Log.Info("Frontend received a signal.", zap.String("signal", x.String()))
+	case e := <-f.Srv.Notify():
+		f.Log.Error("Received an error from the frontend http server.", zap.Error(e))
 	}
 
 	cleanup()

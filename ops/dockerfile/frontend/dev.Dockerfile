@@ -15,4 +15,4 @@ WORKDIR /app
 COPY . .
 
 RUN go get github.com/githubnemo/CompileDaemon
-ENTRYPOINT CompileDaemon -log-prefix=false -build="go build -o /cmd/client main.go" -command="/cmd/client"
+ENTRYPOINT CompileDaemon -log-prefix=false -build="go build -o /cmd/client /app/cmd/main.go" -command="/cmd/client"

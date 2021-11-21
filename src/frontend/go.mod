@@ -3,6 +3,7 @@ module github.com/lapitskyss/go_backend_1_project/src/frontend
 go 1.17
 
 require (
+	github.com/caarlos0/env/v6 v6.7.2
 	github.com/go-chi/chi/v5 v5.0.6
 	github.com/google/wire v0.5.0
 	github.com/pkg/errors v0.9.1

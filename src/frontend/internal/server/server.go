@@ -9,33 +9,28 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/lapitskyss/go_backend_1_project/src/frontend/files"
-	"github.com/lapitskyss/go_backend_1_project/src/frontend/internal/controller"
-	mw "github.com/lapitskyss/go_backend_1_project/src/frontend/internal/middleware"
-	"github.com/lapitskyss/go_backend_1_project/src/frontend/pkg/rpc"
+	"github.com/lapitskyss/go_backend_1_project/src/frontend/internal/server/handler"
+	mw "github.com/lapitskyss/go_backend_1_project/src/frontend/internal/server/middleware"
 )
 
 type Frontend struct {
 	server http.Server
-	errors chan error
 	log    *zap.Logger
+	errors chan error
 }
 
-func NewFrontendServer(ctx context.Context, log *zap.Logger, fe *rpc.FrontendServer, tmp *files.Templates) *Frontend {
+func NewFrontendServer(port string, h *handler.Handler, log *zap.Logger) *Frontend {
 	r := chi.NewRouter()
 
 	r.Use(mw.Recoverer(log))
 
-	cnt := controller.NewController(ctx, log, fe, tmp)
-
 	files.FileServerForStatic(r)
-	r.Get("/{hash}", cnt.Redirect)
-	r.Get("/*", cnt.Home)
-
-	// TODO get server port from env
+	r.Get("/{hash}", h.Redirect)
+	r.Get("/*", h.Home)
 
 	return &Frontend{
 		server: http.Server{
-			Addr:    ":3001",
+			Addr:    ":" + port,
 			Handler: r,
 
 			ReadTimeout:       1 * time.Second,
@@ -48,7 +43,7 @@ func NewFrontendServer(ctx context.Context, log *zap.Logger, fe *rpc.FrontendSer
 }
 
 func (f *Frontend) Start() {
-	f.log.Info("Frontend server started.")
+	f.log.Info("Frontend server started on port " + f.server.Addr + ".")
 	go func() {
 		err := f.server.ListenAndServe()
 		if err != nil && err != http.ErrServerClosed {
