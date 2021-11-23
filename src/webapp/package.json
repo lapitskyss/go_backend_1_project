@@ -5,7 +5,7 @@
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
-    "copy-files": "rm -r ../frontend/static/ && cp -a ./dist/. ../frontend/static/ && mv ../frontend/static/index.html ../frontend/templates",
+    "copy-files": "rm -r ../frontend/files/static/ && cp -a ./dist/. ../frontend/static/ && mv ../frontend/files/static/index.html ../frontend/files/templates",
     "lint": "vue-cli-service lint"
   },
   "dependencies": {

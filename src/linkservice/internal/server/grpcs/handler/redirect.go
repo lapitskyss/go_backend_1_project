@@ -27,7 +27,7 @@ func NewRedirectHandler(log *zap.Logger, redirectService *redirectsrv.RedirectSe
 }
 
 func (r RedirectHandler) GetLink(ctx context.Context, request *proto.GetLinkRequest) (*proto.Link, error) {
-	url, err := r.rs.Process(ctx, request.GetHash())
+	url, err := r.rs.URL(ctx, request.GetHash())
 
 	if err != nil {
 		if errors.Is(err, redirectsrv.ErrLinkNotFound) {

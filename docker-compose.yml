@@ -10,6 +10,7 @@ services:
         ports:
             - "${FRONTEND_HTTP_PORT}:${FRONTEND_HTTP_PORT}"
         environment:
+            API_URL: ${FRONTEND_API_URL}
             SERVER_PORT: ${FRONTEND_HTTP_PORT}
             LINK_SERVICE_ADDR: ${LINKSERVICE_GRPC_SERVICE_ADDR}
         volumes:
@@ -28,7 +29,7 @@ services:
             REST_SERVER_PORT: ${LINKSERVICE_REST_SERVER_PORT}
         depends_on:
             - postgres
-            - flyway
+            - migration
         volumes:
             - ./src/linkservice:/app
 
@@ -43,7 +44,7 @@ services:
             GRPC_SERVER_PORT: ${LINKSERVICE_GRPC_SERVER_PORT}
         depends_on:
             - postgres
-            - flyway
+            - migration
         volumes:
             - ./src/linkservice:/app
 
@@ -60,12 +61,13 @@ services:
         volumes:
             - postgres:/data/postgres
 
-    flyway:
-        image: flyway/flyway
-        container_name: ${APP_NAME}_flyway
-        command: -url=jdbc:postgresql://postgres:${POSTGRES_PORT}/${POSTGRES_DB} -user=${POSTGRES_USER} -password=${POSTGRES_PASSWORD} -connectRetries=60 migrate
-        volumes:
-            - ./db/migration:/flyway/sql
+    migration:
+        build:
+            context: .
+            dockerfile: ./ops/dockerfile/migration/Dockerfile
+        container_name: ${APP_NAME}_migration
+        environment:
+            DATABASE_URL: ${LINKSERVICE_DATABASE_URL}
         depends_on:
             - postgres
 

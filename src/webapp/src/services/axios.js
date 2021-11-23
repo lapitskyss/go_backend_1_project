@@ -1,8 +1,7 @@
 import axios from 'axios';
-import { API_URL } from './config';
 
 const initAxios = () => {
-    axios.defaults.baseURL = API_URL;
+    axios.defaults.baseURL = window["__API_URL__"];
 };
 
 export default initAxios;

@@ -97,14 +97,14 @@ func InitTemplates() (*files.Templates, error) {
 	return files.InitTemplates()
 }
 
-func InitServer(config2 *config.Config, tmp *files.Templates, log *zap.Logger) (*server.Frontend, func(), error) {
-	linkService, err := linksrv.InitLinkServiceClient(config2.LinkServiceAddr)
+func InitServer(conf *config.Config, tmp *files.Templates, log *zap.Logger) (*server.Frontend, func(), error) {
+	linkService, err := linksrv.InitLinkServiceClient(conf.LinkServiceAddr)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	h := handler.InitHandler(linkService, tmp, log)
-	srv := server.NewFrontendServer(strconv.Itoa(config2.ServerPort), h, log)
+	h := handler.InitHandler(linkService, conf, tmp, log)
+	srv := server.NewFrontendServer(strconv.Itoa(conf.ServerPort), h, log)
 
 	cleanup := func() {
 		_ = srv.Stop()

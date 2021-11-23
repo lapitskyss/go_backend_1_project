@@ -1,0 +1,6 @@
+BEGIN;
+
+DROP TABLE links;
+DROP TABLE redirects;
+
+COMMIT;

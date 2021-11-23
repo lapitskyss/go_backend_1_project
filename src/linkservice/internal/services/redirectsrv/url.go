@@ -12,7 +12,7 @@ var (
 	ErrInternal     = errors.New("internal error")
 )
 
-func (s *RedirectService) Process(ctx context.Context, hash string) (string, error) {
+func (s *RedirectService) URL(ctx context.Context, hash string) (string, error) {
 	if hash == "" || len(hash) > 20 {
 		return "", ErrLinkNotFound
 	}
