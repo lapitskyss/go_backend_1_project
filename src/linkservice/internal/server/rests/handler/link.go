@@ -181,6 +181,7 @@ func (h *LinkHandler) Search(w http.ResponseWriter, r *http.Request) {
 			sendError(w, e.ErrInternal())
 			return
 		}
+	default:
 	}
 
 	render.Success(w, &searchLinkResponse{
