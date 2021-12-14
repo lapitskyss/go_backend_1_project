@@ -21,6 +21,13 @@ type RESTServer struct {
 	errors chan error
 }
 
+// @title        URL shortener
+// @version      1.0
+// @description  Linkservice. Service for manage short link.
+
+// @host      localhost:3000
+// @BasePath  /api/v1
+
 func NewRESTServer(port string, log *zap.Logger, linkHandler *handler.LinkHandler) *RESTServer {
 	r := chi.NewRouter()
 

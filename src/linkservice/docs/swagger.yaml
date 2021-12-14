@@ -1,0 +1,147 @@
+basePath: /api/v1
+definitions:
+  handler.infoLinkResponse:
+    properties:
+      created_at:
+        type: string
+      hash:
+        type: string
+      redirects:
+        type: integer
+      url:
+        type: string
+    type: object
+  handler.searchLinkResponse:
+    properties:
+      limit:
+        type: integer
+      links:
+        items:
+          $ref: '#/definitions/handler.singleLinkResponse'
+        type: array
+      page:
+        type: integer
+      pages:
+        type: integer
+      total:
+        type: integer
+    type: object
+  handler.singleLinkResponse:
+    properties:
+      created_at:
+        type: string
+      hash:
+        type: string
+      url:
+        type: string
+    type: object
+host: localhost:3000
+info:
+  contact: {}
+  description: Linkservice. Service for manage short link.
+  title: URL shortener
+  version: "1.0"
+paths:
+  /links:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Link hashes
+        in: query
+        name: ids
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/handler.singleLinkResponse'
+            type: array
+      summary: List links
+      tags:
+      - link
+    post:
+      consumes:
+      - application/json
+      description: create short url
+      parameters:
+      - description: Link URL
+        in: body
+        name: url
+        required: true
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.singleLinkResponse'
+      summary: Create short url
+      tags:
+      - link
+  /links/{hash}:
+    get:
+      consumes:
+      - application/json
+      description: get link info
+      parameters:
+      - description: Link hash
+        in: path
+        name: hash
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.infoLinkResponse'
+      summary: Info about link
+      tags:
+      - link
+  /links/search:
+    get:
+      consumes:
+      - application/json
+      description: get links by parameters
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Number of links in page
+        in: query
+        name: limit
+        type: integer
+      - description: url/hash/created_at
+        in: query
+        name: sort
+        type: string
+      - description: asc/desc
+        in: query
+        name: order
+        type: string
+      - description: Search for url
+        in: query
+        name: query
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/handler.searchLinkResponse'
+            type: array
+      summary: Search links
+      tags:
+      - link
+swagger: "2.0"

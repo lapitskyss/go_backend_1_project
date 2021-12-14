@@ -1,4 +1,4 @@
-package e
+package response
 
 //BadRequestError incorrect request from user
 type BadRequestError struct {
@@ -9,9 +9,15 @@ func (e *BadRequestError) Error() string {
 	return e.Message
 }
 
-func ErrBadRequest(message string) error {
+func BadRequest(message string) error {
 	return &BadRequestError{
 		Message: message,
+	}
+}
+
+func ErrBadRequest(err error) error {
+	return &BadRequestError{
+		Message: err.Error(),
 	}
 }
 

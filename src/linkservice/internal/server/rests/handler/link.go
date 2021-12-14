@@ -11,8 +11,8 @@ import (
 	"github.com/gorilla/schema"
 	"go.uber.org/zap"
 
-	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/pkg/e"
 	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/pkg/render"
+	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/pkg/response"
 	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/services/linksrv"
 )
 
@@ -38,6 +38,15 @@ type singleLinkResponse struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+// Create godoc
+// @Summary      Create short url
+// @Description  create short url
+// @Tags         link
+// @Accept       json
+// @Produce      json
+// @Param        url  body      string  true  "Link URL"
+// @Success      200  {object}  singleLinkResponse
+// @Router       /links [post]
 func (h *LinkHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var linkRequest = &createLinkRequest{}
 	err := json.NewDecoder(r.Body).Decode(linkRequest)
@@ -50,7 +59,7 @@ func (h *LinkHandler) Create(w http.ResponseWriter, r *http.Request) {
 		URL: linkRequest.URL,
 	})
 	if err != nil {
-		sendError(w, err)
+		response.SendError(w, err)
 		return
 	}
 
@@ -65,6 +74,14 @@ type listLinkParameters struct {
 	Hashes string `schema:"ids"`
 }
 
+// List godoc
+// @Summary  List links
+// @Tags     link
+// @Accept   json
+// @Produce  json
+// @Param    ids  query    string  true  "Link hashes"
+// @Success  200  {array}  singleLinkResponse
+// @Router   /links [get]
 func (h *LinkHandler) List(w http.ResponseWriter, r *http.Request) {
 	var params listLinkParameters
 	err := schema.NewDecoder().Decode(&params, r.URL.Query())
@@ -94,7 +111,7 @@ func (h *LinkHandler) List(w http.ResponseWriter, r *http.Request) {
 	case message, ok := <-errChan:
 		if ok {
 			h.log.Error("Link list handler error from link service", zap.Error(message))
-			sendError(w, e.ErrInternal())
+			response.SendError(w, response.ErrInternal())
 			return
 		}
 	}
@@ -109,12 +126,21 @@ type infoLinkResponse struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+// Info godoc
+// @Summary      Info about link
+// @Description  get link info
+// @Tags         link
+// @Accept       json
+// @Produce      json
+// @Param        hash  path      string  true  "Link hash"
+// @Success      200   {object}  infoLinkResponse
+// @Router       /links/{hash} [get]
 func (h *LinkHandler) Info(w http.ResponseWriter, r *http.Request) {
 	var hash = chi.URLParam(r, "hash")
 
 	l, err := h.ls.Info(r.Context(), hash)
 	if err != nil {
-		sendError(w, err)
+		response.SendError(w, err)
 		return
 	}
 
@@ -142,6 +168,19 @@ type searchLinkResponse struct {
 	Links []singleLinkResponse `json:"links"`
 }
 
+// Search godoc
+// @Summary      Search links
+// @Description  get links by parameters
+// @Tags         link
+// @Accept       json
+// @Produce      json
+// @Param        page   query    uint64  false  "Page number"
+// @Param        limit  query    uint64  false  "Number of links in page"
+// @Param        sort   query    string  false  "url/hash/created_at"
+// @Param        order  query    string  false  "asc/desc"
+// @Param        query  query    string  false  "Search for url"
+// @Success      200    {array}  searchLinkResponse
+// @Router       /links/search [get]
 func (h *LinkHandler) Search(w http.ResponseWriter, r *http.Request) {
 	var params searchLinkParameters
 	err := schema.NewDecoder().Decode(&params, r.URL.Query())
@@ -158,7 +197,7 @@ func (h *LinkHandler) Search(w http.ResponseWriter, r *http.Request) {
 		Query: params.Query,
 	})
 	if err != nil {
-		sendError(w, err)
+		response.SendError(w, err)
 		return
 	}
 
@@ -178,7 +217,7 @@ func (h *LinkHandler) Search(w http.ResponseWriter, r *http.Request) {
 	case message, ok := <-links.Err:
 		if ok {
 			h.log.Error("Link search handler error from link service", zap.Error(message))
-			sendError(w, e.ErrInternal())
+			response.SendError(w, response.ErrInternal())
 			return
 		}
 	default:
@@ -191,15 +230,4 @@ func (h *LinkHandler) Search(w http.ResponseWriter, r *http.Request) {
 		Total: links.Total,
 		Links: respLinks,
 	})
-}
-
-func sendError(w http.ResponseWriter, err error) {
-	switch err.(type) {
-	case *e.BadRequestError:
-		render.BadRequestError(w, err)
-	case *e.NotFoundError:
-		render.NotFoundError(w)
-	default:
-		render.InternalServerError(w)
-	}
 }

@@ -7,7 +7,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/pkg/e"
+	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/pkg/response"
 )
 
 type SearchLinkRequest struct {
@@ -30,7 +30,7 @@ type SearchLinkResponse struct {
 func (s *LinkService) Search(ctx context.Context, r SearchLinkRequest) (*SearchLinkResponse, error) {
 	err := r.validate()
 	if err != nil {
-		return nil, e.ErrBadRequest(err.Error())
+		return nil, response.ErrBadRequest(err)
 	}
 
 	page := r.getPage()
@@ -43,7 +43,7 @@ func (s *LinkService) Search(ctx context.Context, r SearchLinkRequest) (*SearchL
 	totalLinks, err := s.ls.CountByQuery(ctx, query)
 	if err != nil {
 		s.log.Error("Link service error to call CountByQuery", zap.Error(err))
-		return nil, e.ErrInternal()
+		return nil, response.ErrInternal()
 	}
 
 	numberOfPages := getNumberOfPages(totalLinks, limit)

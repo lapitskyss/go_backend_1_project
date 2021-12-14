@@ -8,7 +8,7 @@ import (
 	"github.com/speps/go-hashids/v2"
 	"go.uber.org/zap"
 
-	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/pkg/e"
+	"github.com/lapitskyss/go_backend_1_project/src/linkservice/internal/pkg/response"
 )
 
 type CreateLinkRequest struct {
@@ -20,14 +20,14 @@ func (s *LinkService) Create(ctx context.Context, r CreateLinkRequest) (*Link, e
 	// validate request data
 	err := r.validate()
 	if err != nil {
-		return nil, e.ErrBadRequest(err.Error())
+		return nil, response.ErrBadRequest(err)
 	}
 
 	// check is link already exist in database
 	existingLink, err := s.ls.GetByURL(ctx, r.URL)
 	if err != nil {
 		s.log.Error("Link service error to call GetByURL", zap.Error(err))
-		return nil, e.ErrInternal()
+		return nil, response.ErrInternal()
 	}
 
 	// return existing link
@@ -39,14 +39,14 @@ func (s *LinkService) Create(ctx context.Context, r CreateLinkRequest) (*Link, e
 	linkId, err := s.ls.GetNextId(ctx)
 	if err != nil {
 		s.log.Error("Link service error to call GetNextId", zap.Error(err))
-		return nil, e.ErrInternal()
+		return nil, response.ErrInternal()
 	}
 
 	// generate hash for link
 	hash, err := getHashForLink(linkId)
 	if err != nil {
 		s.log.Error("Link service error to call getHashForLink", zap.Error(err))
-		return nil, e.ErrInternal()
+		return nil, response.ErrInternal()
 	}
 
 	newLink := &Link{
@@ -60,7 +60,7 @@ func (s *LinkService) Create(ctx context.Context, r CreateLinkRequest) (*Link, e
 	err = s.ls.Add(ctx, newLink)
 	if err != nil {
 		s.log.Error("Link service error to call Add", zap.Error(err))
-		return nil, e.ErrInternal()
+		return nil, response.ErrInternal()
 	}
 
 	return newLink, nil
@@ -70,11 +70,11 @@ func (r *CreateLinkRequest) validate() error {
 	result, err := url.ParseRequestURI(r.URL)
 
 	if err != nil || result.Scheme == "" {
-		return e.ErrBadRequest("incorrect link URL")
+		return response.BadRequest("incorrect link URL")
 	}
 
 	if len(r.URL) > 2048 {
-		return e.ErrBadRequest("link URL is to long")
+		return response.BadRequest("link URL is to long")
 	}
 
 	return nil

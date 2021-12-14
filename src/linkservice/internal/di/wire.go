@@ -8,6 +8,7 @@ import (
 	"context"
 	"strconv"
 
+	"github.com/caarlos0/env/v6"
 	"github.com/google/wire"
 	"go.uber.org/zap"
 
